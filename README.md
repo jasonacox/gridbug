@@ -49,14 +49,15 @@ Simple webservice to monitor and poll other GridBug nodes to monitor network con
             "id": "origin"
         }]
     }
-```
+    ```
 
 ### Running
 
 See the `run.sh` startup
-```
+
+    ```
     The API service of gridbug has the following functions:
         /           - Human friendly display of current conditions
         /json       - All current gridbug status in JSON format
         /stats      - Internal gridbug metrics
-```
+    ```

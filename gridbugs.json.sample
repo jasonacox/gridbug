@@ -1,0 +1,13 @@
+{
+	"version": 1,
+	"gridbugs": [{
+		"host": "35.202.193.158",
+		"id": "jasonacox.com"
+	}, {
+		"host": "10.0.1.2",
+		"id": "LAN"
+	}, {
+		"host": "localhost",
+		"id": "localhost"
+	}]
+}

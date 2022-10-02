@@ -15,30 +15,34 @@
     CONFIGURATION FILE - On startup will look for gridbug.conf
     which includes the following parameters:
 
-        [gridbug]
+        [GRIDBUG]
         DEBUG = no
+        ID = localhost
+        ROLE = node
 
         [API]
         # Port for API requests
         ENABLE = yes
         PORT = 80
 
-        [grid]
+        [BUGS]
         # List of gridbug nodes
-        BUGS =
+        WAIT = 1
+        CONFIGFILE = gridbugs.json
 
-        [alert]
+        [ALERT]
         # Notify connectivity issues
         ENABLE = yes
     
 
     ENVIRONMENTAL:
-        GRIDBUGCONF = "Path to gridbug.conf file"
+        GRIDBUGCONF = Path to gridbug.conf config file
+        BUGLISTURL = URL to gridbug.conf (overrides config)
 
     The API service of gridbug has the following functions:
         /           - Human friendly display of current conditions
-        /json       - All current data in JSON format
-        /stats      - Internal gridbug stats
+        /json       - All current gridbug status in JSON format
+        /stats      - Internal gridbug metrics
 
 """
 # Modules
@@ -59,7 +63,7 @@ import configparser
 BUILD = "0.0.1"
 CLI = False
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
-BUGLISTURL = os.getenv("BUGLISTURL", "")
+BUGLISTURL = os.getenv("BUGLISTURL", "") 
 URL = ""
 
 # Load Configuration File
@@ -139,21 +143,30 @@ def pollgridbugs():
 
             for node in bugs['gridbugs']:
                 URL = "http://%s/ping" % node['host']
-                print(URL)
+                if CLI:
+                    print(URL)
+                    log.debug("URL = %s\n" % URL)
                 serverstats['poll'] += 1
                 try:
                     response = requests.get(URL)
                     if response.status_code == 200:
-                        print("Got response from grid %s %s" % (node['id'], node['host']))   
+                        if CLI:
+                            print("Got response from grid %s %s" % (node['id'], node['host']))   
+                        log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
                     else:
                         # no response
-                        print("%d response from grid %s %s" % 
-                            (response.status_code, node['id'], node['host']))   
+                        if CLI:
+                            print("%d response from grid %s %s" % 
+                                (response.status_code, node['id'], node['host'])) 
+                            log.debug("%d response from grid %s %s" % 
+                                (response.status_code, node['id'], node['host'])) 
                         node['alive'] = False 
                 except:
                     # no response
-                    print("No response from grid %s %s" % (node['id'], node['host']))   
+                    if CLI:
+                        print("No response from grid %s %s" % (node['id'], node['host']))   
+                        log.debug("No response from grid %s %s" % (node['id'], node['host']))   
                     node['alive'] = False 
                     pass
         time.sleep(5)
@@ -186,6 +199,9 @@ class handler(BaseHTTPRequestHandler):
         result = {}  # placeholder
         if self.path == '/ping':
             message = '{"status": "OK"}'
+        elif self.path == '/favicon.ico':
+            contenttype = 'image/x-icon'
+            message = 'data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII='
         elif self.path == '/':
             # Display friendly intro
             contenttype = 'text/html'
@@ -222,6 +238,7 @@ class handler(BaseHTTPRequestHandler):
 
         # Counts 
         if "Error" in message:
+            print("Error: %s" % self.path)
             serverstats['errors'] = serverstats['errors'] + 1
         else:
             if self.path in serverstats["uri"]:

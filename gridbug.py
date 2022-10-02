@@ -37,7 +37,7 @@
 
     ENVIRONMENTAL:
         GRIDBUGCONF = Path to gridbug.conf config file
-        BUGLISTURL = URL to gridbug.conf (overrides config)
+        BUGLISTURL = URL to gridbugs.json (overrides config)
 
     The API service of gridbug has the following functions:
         /           - Human friendly display of current conditions

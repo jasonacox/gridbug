@@ -41,8 +41,9 @@
 
     The API service of gridbug has the following functions:
         /           - Human friendly display of current conditions
-        /json       - All current gridbug status in JSON format
+        /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics
+        /graph      - Internal graph of connectivity (JSON)
 
 """
 # Modules
@@ -101,6 +102,7 @@ if DEBUGMODE:
 serverstats = {}
 serverstats['GridBug'] = BUILD
 serverstats['gets'] = 0
+serverstats['posts'] = 0
 serverstats['errors'] = 0
 serverstats['timeout'] = 0
 serverstats['poll'] = 0
@@ -113,16 +115,35 @@ serverstats['clear'] = int(time.time())      # Timestamp of lLast Stats Clear
 running = True
 conditions = {}
 bugs = {}
+graph = {"nodes": [], "edges": []}
 
-def lookup(source, index, valtype='string'):
-    # check source dict to see if index key exists
-    if index in source:
-        if valtype == 'float':
-            return float(source[index])
-        if valtype == 'int':
-            return int(source[index])            
-        return str(source[index])
-    return None
+# Graph Functions
+def updategraph(payload=False):
+    """
+    Function to update graph data
+    """
+    global bugs, graph
+    if payload:
+        # Update based on received measurements
+        source = payload["node_id"]
+    else:
+        # Update based on our measurements
+        source = ID
+        payload = bugs
+    for n in payload["gridbugs"]:
+        target = n["id"]
+        alive = n["alive"]
+        id = "%s.%s" % (source,target)
+        if source not in graph["nodes"]:
+            graph["nodes"].append(source)
+        found = False
+        for e in graph["edges"]:
+            if e["id"] == id:
+                e["alive"] = alive
+                found = True
+        if not found:
+            graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
+    print("> GRAPH < %r" % graph)
 
 # Threads
 def pollgridbugs():
@@ -169,6 +190,14 @@ def pollgridbugs():
                         log.debug("No response from grid %s %s" % (node['id'], node['host']))   
                     node['alive'] = False 
                     pass
+
+            # Update graph based on discovery
+            updategraph()
+
+            # Send in update
+            r = requests.post('http://localhost/post', json=bugs)
+            print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
+
         time.sleep(5)
     sys.stderr.write('\r ! pollgridbugs Exit\n')
 
@@ -191,8 +220,48 @@ class handler(BaseHTTPRequestHandler):
         host, hostport = self.client_address[:2]
         return host
 
+    def do_POST(self):
+        global URL
+        self.send_response(200)
+        message = "Error"
+        contenttype = 'application/json'
+        result = {}  # placeholder
+        if self.path == '/post':
+            message = '{"status": "OK"}'   
+            content_len = int(self.headers.get('content-length', 0))
+            if content_len > 2000:
+                message = "Error: Heavy Payload"
+            else:
+                post_body = self.rfile.read(content_len)
+                try:
+                    post_json = json.loads(post_body)
+                    print("POST json: %r" % post_json)
+                    updategraph(post_json)
+                except:
+                    message = "Error: Invalid Payload"
+        else:
+            # Error
+            message = "Error: Unsupported Request"
+
+        # Counts 
+        if "Error" in message:
+            print("Error: %s" % self.path)
+            serverstats['errors'] = serverstats['errors'] + 1
+        else:
+            if self.path in serverstats["uri"]:
+                serverstats["uri"][self.path] += 1
+            else:
+                serverstats["uri"][self.path] = 1
+        serverstats['posts'] = serverstats['posts'] + 1
+
+        # Send headers and payload
+        self.send_header('Content-type',contenttype)
+        self.send_header('Content-Length', str(len(message)))
+        self.end_headers()
+        self.wfile.write(bytes(message, "utf8"))
+
     def do_GET(self):
-        global conditions, URL
+        global URL
         self.send_response(200)
         message = "Error"
         contenttype = 'application/json'
@@ -224,8 +293,10 @@ class handler(BaseHTTPRequestHandler):
             serverstats['ts'] = int(time.time())
             serverstats['mem'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             message = json.dumps(serverstats)
-        elif self.path == '/json' or self.path == '/all' or self.path == '/gridbugs.json':
+        elif self.path == '/bugs' or self.path == '/gridbugs.json':
             message = json.dumps(bugs)
+        elif self.path == '/graph':
+            message = json.dumps(graph)
         elif self.path == '/time':
             ts = time.time()
             result["local_time"] = str(datetime.datetime.fromtimestamp(ts))
@@ -302,6 +373,23 @@ if __name__ == "__main__":
         except:
             print("ERROR: Unable to load grid bug list - tried %s" % BUGLISTURL)
             exit
+
+    # Validate bugs DB
+    nodes = []
+    for n in bugs['gridbugs']:
+        if n in nodes:
+            print("ERROR: Found duplicates in gird bug list - IDs must be unique")
+            exit
+    if ID not in nodes:
+        # TODO We need to add ourself - error out for now
+        # me = {"id": ID, "host": "localhost"}
+        print("ERROR: Unable to find myself in the grid bug list - exiting")
+        exit
+
+    # Add local identity to DB
+    bugs['node_id'] = ID
+    bugs['node_role'] = ROLE
+    bugs['node_build'] = BUILD
 
     # Start threads
     sys.stderr.write("* Starting threads\n")

@@ -30,7 +30,6 @@
 
         [BUGS]
         WAIT = 10
-        CONFIGFILE = gridbugs.json
         TTL = 30
 
         [ALERT]
@@ -39,7 +38,8 @@
 
     ENVIRONMENTAL:
         GRIDBUGCONF = Path to gridbug.conf config file
-        BUGLISTURL = URL to gridbugs.json (overrides config)
+        GRIDBUGLIST = Path to gridbugs.json node list
+        BUGLISTURL = URL to gridbugs.json (overrides above)
 
     The API service of gridbug has the following functions:
         /           - GridBug Console - displays graph of nodes      
@@ -67,6 +67,7 @@ import configparser
 BUILD = "0.0.1"
 CLI = False
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
+GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
 BUGLISTURL = os.getenv("BUGLISTURL", "") 
 URL = ""
 
@@ -86,7 +87,6 @@ if os.path.exists(CONFIGFILE):
 
     # GridBugs
     GBWAIT = int(config["BUGS"]["WAIT"])
-    GRIDBUGLIST = config["BUGS"]["CONFIGFILE"]
     TTL = int(config["BUGS"]["TTL"])
     
     # Alerts

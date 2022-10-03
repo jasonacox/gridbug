@@ -12,18 +12,20 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
 
 ### Environmental Settings
 
-* `GRIDBUGCONF` = Path to gridbug.conf config file
+* GRIDBUGCONF = Path to gridbug.conf config file
+* GRIDBUGLIST = Path to gridbugs.json node list
+* BUGLISTURL = URL to gridbugs.json (overrides above)
 
-* `BUGLISTURL` = URL to gridbugs.json (overrides config)
+## Quick Start
 
-### Configuration Files
+1. Create a `gridbug.conf` file and update with your specific location details. Make sure you update `ID` to be the unique name of the node.
 
 * gridbug.conf - Configuration File
     ```conf
     [GRIDBUG]
     DEBUG = no
+    # Unique name of this node
     ID = localhost
-    # Role: server, node
     ROLE = node
     CONSOLE = gridbug.html
     SERVERNODE = localhost:8777
@@ -35,20 +37,22 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
 
     [BUGS]
     # List of gridbug nodes
-    WAIT = 1
-    CONFIGFILE = gridbugs.json
+    WAIT = 10
+    TTL = 60
 
     [ALERT]
     # Notify connectivity issues
     ENABLE = yes
     ```                             
 
+1. Create a `gridbugs.json` file and add the list of nodes for your grid. The `host` is the address and should include the port (8777) where `id` is the unique name of the node (matching gridbug.conf `ID`) for each node.
+
 * gridbugs.json - List of Grid Nodes
     ```json
     {
         "version": 1,
         "gridbugs": [{
-            "host": "35.202.193.158",
+            "host": "ptr.example.com:8777",
             "id": "jasonacox.com"
         }, {
             "host": "10.0.1.2:8777",
@@ -60,13 +64,36 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
     }
     ```
 
-### Running
+3. Run the Docker Container to listen on port 8777.
 
-See the `run.sh` startup
+    ```bash
+    docker run \
+    -d \
+    -p 8777:8777 \
+    -e GRIDBUGCONF='/var/lib/gridbug/gridbug.conf' \
+    -e GRIDBUGLIST='/var/lib/gridbug/gridbugs.json' \
+    -v ${PWD}:/var/lib/gridbug \
+    --name gridbug \
+    --restart unless-stopped \
+    jasonacox/gridbug
+    ```
 
-    The API service of gridbug has the following functions:
-        /           - GridBug Console - displays graph of nodes      
-        /text       - Human friendly display of current conditions
-        /bugs       - List of gridbug nodes
-        /stats      - Internal gridbug metrics
-        /graph      - Internal graph of connectivity (JSON)
+3. View the GridBug Console and API Calls
+
+    Console: http://localhost:8777/
+
+    ```bash
+    # Get Version and Status
+    curl -i http://localhost:8777/stats
+
+    # Get Current Weather Data
+    curl -i http://localhost:8777/text   # Text version of console
+    curl -i http://localhost:8777/bugs   # List of gridbug nodes
+    curl -i http://localhost:8777/graph  # nternal graph of connectivity (JSON)
+    ```
+
+
+### Direct Running
+
+Alternatively, you can just run the python server from the `run.sh` startup script.
+

@@ -189,7 +189,6 @@ def pollgridbugs():
                         log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
                         # Attempt to send payload to update node
-                                    # Send in update
                         try:
                             sname = "http://%s/post" % node['host']
                             r = requests.post(sname, json=bugs)
@@ -200,7 +199,16 @@ def pollgridbugs():
                             log.debug("Unable to send graph to node %s" % node['host'])
                             if CLI:
                                 print("Unable to send graph to node %s" % node['host'])
-
+                        # Attempt to poll node for any graph updates
+                        try:
+                            sname = "http://%s/bugs" % node['host']
+                            r = requests.get(sname)
+                            payload = r.json()
+                            updategraph(payload)
+                        except:
+                            log.debug("Unable to update graph from node %s" % node['host'])
+                            if CLI:
+                                print("Unable to update graph from node %s" % node['host'])  
                     else:
                         # no response
                         if CLI:

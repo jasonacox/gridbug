@@ -49,7 +49,7 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
         "version": 1,
         "gridbugs": [{
             "host": "35.202.193.158",
-            "id": "jasonacox.com"s
+            "id": "jasonacox.com"
         }, {
             "host": "10.0.1.2:8777",
             "id": "LAN"

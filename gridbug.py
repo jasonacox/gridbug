@@ -207,7 +207,8 @@ def pollgridbugs():
             updategraph()
 
             # Send in update
-            r = requests.post(SERVERNODE, json=bugs)
+            sname = "http://%s/post" % SERVERNODE
+            r = requests.post(sname, json=bugs)
             if CLI:
                 print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
 
@@ -408,13 +409,15 @@ if __name__ == "__main__":
     # Validate bugs DB
     nodes = []
     for n in bugs['gridbugs']:
-        if n in nodes:
+        if n["id"] in nodes:
             print("ERROR: Found duplicates in grid bug list - IDs must be unique")
             exit
+        nodes.append(n["id"])
     if ID not in nodes:
         # TODO We need to add ourself - error out for now
         # me = {"id": ID, "host": "localhost"}
         print("ERROR: Unable to find myself in the grid bug list - exiting")
+        print(nodes)
         exit
 
     # Add local identity to DB

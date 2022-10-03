@@ -1,7 +1,12 @@
 # GridBug
-Simple webservice to monitor and poll other GridBug nodes to monitor network connectivity.
+This is a simple tool to monitor network connectivity between nodes and display status graph.
 
 <img width="741" alt="image" src="https://user-images.githubusercontent.com/836718/193484099-9d20c5a4-7778-44bb-8f92-e63514d72510.png">
+
+## How it Works
+The `gridbug.py` service runs an pulls in a list of other gridbug nodes. It then proceeds to poll each of these nodes and records the state (link up or down).  
+
+One of the gridbug nodes is designated as the server and the other grid nodes can send their results to that node.  The server node builds a direction graph of connectiity between all the gridbug nodes and renders a HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
 
 ## Configuration
 

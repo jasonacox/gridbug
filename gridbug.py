@@ -29,9 +29,9 @@
         PORT = 8777
 
         [BUGS]
-        # List of gridbug nodes
-        WAIT = 1
+        WAIT = 10
         CONFIGFILE = gridbugs.json
+        TTL = 30
 
         [ALERT]
         # Notify connectivity issues
@@ -87,6 +87,7 @@ if os.path.exists(CONFIGFILE):
     # GridBugs
     GBWAIT = int(config["BUGS"]["WAIT"])
     GRIDBUGLIST = config["BUGS"]["CONFIGFILE"]
+    TTL = int(config["BUGS"]["TTL"])
     
     # Alerts
 else:
@@ -129,6 +130,7 @@ def updategraph(payload=False):
     Function to update graph data
     """
     global bugs, graph
+    currentts = time.time()
     if payload:
         # Update based on received measurements
         source = payload["node_id"]
@@ -148,11 +150,16 @@ def updategraph(payload=False):
         for e in graph["edges"]:
             # Update edges if from authoritative source
             if e["id"] == id and e["source"] == source:
+                e["ts"] = currentts
                 if alive:
                     e["color"] = "green"
                 else:
                     e["color"] = "red"
                 found = True
+            else:
+                if "ts" in e and (e["ts"] + TTL < currentts):
+                    # Edge has aged out
+                    e["color"] = "gray"
         if not found:
             graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
     if CLI:
@@ -173,7 +180,7 @@ def pollgridbugs():
 
         # Is it time for an update?
         if currentts >= nextupdate:
-            nextupdate = currentts + (10 * GBWAIT)
+            nextupdate = currentts + GBWAIT
 
             for node in bugs['gridbugs']:
                 URL = "http://%s/ping" % node['host']

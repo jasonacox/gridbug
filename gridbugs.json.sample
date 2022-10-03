@@ -1,16 +1,19 @@
 {
 	"version": 1,
 	"gridbugs": [{
-		"host": "35.202.193.158",
-		"id": "jasonacox.com"
+		"host": "ptr.example.com:8777",
+		"id": "gcp-us-central1"
 	}, {
-		"host": "10.0.1.2",
-		"id": "LAN"
+		"host": "cname.example.com:8777",
+		"id": "aws-us-west-1"
+	}, {
+		"host": "10.0.1.111:8777",
+		"id": "mbp"
+	}, {
+		"host": "localhost:8000",
+		"id": "failtest"
 	}, {
 		"host": "localhost:8777",
-		"id": "test"
-	}, {
-		"host": "localhost",
-		"id": "localhost"
+		"id": "home"
 	}]
 }

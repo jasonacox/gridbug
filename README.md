@@ -26,11 +26,12 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
     # Role: server, node
     ROLE = node
     CONSOLE = gridbug.html
+    SERVERNODE = localhost:8777
 
     [API]
     # Port for API requests
     ENABLE = yes
-    PORT = 80
+    PORT = 8777
 
     [BUGS]
     # List of gridbug nodes
@@ -48,12 +49,12 @@ One of the gridbug nodes is designated as the server and the other grid nodes ca
         "version": 1,
         "gridbugs": [{
             "host": "35.202.193.158",
-            "id": "jasonacox.com"
+            "id": "jasonacox.com"s
         }, {
-            "host": "10.0.1.2",
+            "host": "10.0.1.2:8777",
             "id": "LAN"
         }, {
-            "host": "localhost",
+            "host": "localhost:8777",
             "id": "origin"
         }]
     }

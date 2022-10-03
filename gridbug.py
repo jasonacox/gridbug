@@ -18,13 +18,15 @@
         [GRIDBUG]
         DEBUG = no
         ID = localhost
+        # Role: server, node
         ROLE = node
         CONSOLE = gridbug.html
+        SERVERNODE = localhost:8777
 
         [API]
         # Port for API requests
         ENABLE = yes
-        PORT = 80
+        PORT = 8777
 
         [BUGS]
         # List of gridbug nodes
@@ -34,7 +36,6 @@
         [ALERT]
         # Notify connectivity issues
         ENABLE = yes
-    
 
     ENVIRONMENTAL:
         GRIDBUGCONF = Path to gridbug.conf config file
@@ -77,6 +78,7 @@ if os.path.exists(CONFIGFILE):
     ID = config["GRIDBUG"]["ID"]
     ROLE = config["GRIDBUG"]["ROLE"]
     CONSOLE = config["GRIDBUG"]["CONSOLE"]
+    SERVERNODE = config["GRIDBUG"]["SERVERNODE"]
 
     # GridBug API
     API = config["API"]["ENABLE"].lower() == "yes"
@@ -205,7 +207,7 @@ def pollgridbugs():
             updategraph()
 
             # Send in update
-            r = requests.post('http://localhost/post', json=bugs)
+            r = requests.post(SERVERNODE, json=bugs)
             if CLI:
                 print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
 

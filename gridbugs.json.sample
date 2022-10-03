@@ -7,7 +7,7 @@
 		"host": "10.0.1.2",
 		"id": "LAN"
 	}, {
-		"host": "localhost:8000",
+		"host": "localhost:8777",
 		"id": "test"
 	}, {
 		"host": "localhost",

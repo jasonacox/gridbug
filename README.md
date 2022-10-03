@@ -1,6 +1,8 @@
 # GridBug
 Simple webservice to monitor and poll other GridBug nodes to monitor network connectivity.
 
+<img width="615" alt="image" src="https://user-images.githubusercontent.com/836718/193483485-c19a5e25-8c4f-46bd-b8f0-5853c0074f87.png">
+
 ## Configuration
 
 #### Environmental Settings
@@ -18,6 +20,7 @@ Simple webservice to monitor and poll other GridBug nodes to monitor network con
     ID = localhost
     # Role: server, node
     ROLE = node
+    CONSOLE = gridbug.html
 
     [API]
     # Port for API requests
@@ -56,6 +59,8 @@ Simple webservice to monitor and poll other GridBug nodes to monitor network con
 See the `run.sh` startup
 
     The API service of gridbug has the following functions:
-        /           - Human friendly display of current conditions
-        /json       - All current gridbug status in JSON format
+        /           - GirdBug Console - displays graph of nodes      
+        /text       - Human friendly display of current conditions
+        /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics
+        /graph      - Internal graph of connectivity (JSON)

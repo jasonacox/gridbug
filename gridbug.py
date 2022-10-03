@@ -19,6 +19,7 @@
         DEBUG = no
         ID = localhost
         ROLE = node
+        CONSOLE = gridbug.html
 
         [API]
         # Port for API requests
@@ -40,7 +41,8 @@
         BUGLISTURL = URL to gridbugs.json (overrides config)
 
     The API service of gridbug has the following functions:
-        /           - Human friendly display of current conditions
+        /           - GirdBug Console - displays graph of nodes      
+        /text       - Human friendly display of current conditions
         /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics
         /graph      - Internal graph of connectivity (JSON)
@@ -74,6 +76,7 @@ if os.path.exists(CONFIGFILE):
     DEBUGMODE = config["GRIDBUG"]["DEBUG"].lower() == "yes"
     ID = config["GRIDBUG"]["ID"]
     ROLE = config["GRIDBUG"]["ROLE"]
+    CONSOLE = config["GRIDBUG"]["CONSOLE"]
 
     # GridBug API
     API = config["API"]["ENABLE"].lower() == "yes"
@@ -101,6 +104,7 @@ if DEBUGMODE:
 # Global Stats
 serverstats = {}
 serverstats['GridBug'] = BUILD
+serverstats['node_id'] = ID
 serverstats['gets'] = 0
 serverstats['posts'] = 0
 serverstats['errors'] = 0
@@ -136,14 +140,20 @@ def updategraph(payload=False):
         id = "%s.%s" % (source,target)
         if source not in graph["nodes"]:
             graph["nodes"].append(source)
+        if target not in graph["nodes"]:
+            graph["nodes"].append(target)
         found = False
         for e in graph["edges"]:
             if e["id"] == id:
-                e["alive"] = alive
+                if alive:
+                    e["color"] = "green"
+                else:
+                    e["color"] = "red"
                 found = True
         if not found:
             graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
-    print("> GRAPH < %r" % graph)
+    if CLI:
+        print("> GRAPH < %r" % graph)
 
 # Threads
 def pollgridbugs():
@@ -196,7 +206,8 @@ def pollgridbugs():
 
             # Send in update
             r = requests.post('http://localhost/post', json=bugs)
-            print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
+            if CLI:
+                print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
 
         time.sleep(5)
     sys.stderr.write('\r ! pollgridbugs Exit\n')
@@ -235,7 +246,8 @@ class handler(BaseHTTPRequestHandler):
                 post_body = self.rfile.read(content_len)
                 try:
                     post_json = json.loads(post_body)
-                    print("POST json: %r" % post_json)
+                    if CLI:
+                        print("POST json: %r" % post_json)
                     updategraph(post_json)
                 except:
                     message = "Error: Invalid Payload"
@@ -261,7 +273,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(message, "utf8"))
 
     def do_GET(self):
-        global URL
+        global URL, CONSOLE
         self.send_response(200)
         message = "Error"
         contenttype = 'application/json'
@@ -271,7 +283,7 @@ class handler(BaseHTTPRequestHandler):
         elif self.path == '/favicon.ico':
             contenttype = 'image/x-icon'
             message = 'data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII='
-        elif self.path == '/':
+        elif self.path == '/text':
             # Display friendly intro
             contenttype = 'text/html'
             message = '<html>\n<head><meta http-equiv="refresh" content="5" />\n'
@@ -295,8 +307,25 @@ class handler(BaseHTTPRequestHandler):
             message = json.dumps(serverstats)
         elif self.path == '/bugs' or self.path == '/gridbugs.json':
             message = json.dumps(bugs)
-        elif self.path == '/graph':
+        elif self.path == '/raw':
             message = json.dumps(graph)
+        elif self.path == '/graph':
+            nodes = []
+            edges = []
+            for n in graph["nodes"]:
+                nodes.append({"data": {"id": n}})
+            for e in graph["edges"]:
+                edges.append({"data": e })
+            output = {"nodes": nodes, "edges": edges}
+            message = json.dumps(output)
+        elif self.path == '/' or self.path == '/gridbug.html':
+            contenttype = 'text/html'
+            try:
+                with open(CONSOLE, 'r') as f:
+                    message = f.read()
+                    f.close()
+            except:
+                message = "Error: Unable to open gridbug.html"
         elif self.path == '/time':
             ts = time.time()
             result["local_time"] = str(datetime.datetime.fromtimestamp(ts))

@@ -1,7 +1,7 @@
 # GridBug
 This is a simple tool to monitor network connectivity between nodes and display status graph.
 
-<img width="782" alt="image" src="https://user-images.githubusercontent.com/836718/193487956-204ecfae-f3c0-4cd1-a1b8-9e0e2d68287b.png">
+<img width="709" alt="image" src="https://user-images.githubusercontent.com/836718/193499507-faad0b45-d41f-4a72-afbb-0d3ed5f240f0.png">
 
 ## How it Works
 The `gridbug.py` service pulls in a list of other gridbug nodes. It then proceeds to poll each of these nodes and records the state (link up or down).  

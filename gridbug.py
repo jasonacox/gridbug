@@ -41,7 +41,7 @@
         BUGLISTURL = URL to gridbugs.json (overrides config)
 
     The API service of gridbug has the following functions:
-        /           - GirdBug Console - displays graph of nodes      
+        /           - GridBug Console - displays graph of nodes      
         /text       - Human friendly display of current conditions
         /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics
@@ -407,7 +407,7 @@ if __name__ == "__main__":
     nodes = []
     for n in bugs['gridbugs']:
         if n in nodes:
-            print("ERROR: Found duplicates in gird bug list - IDs must be unique")
+            print("ERROR: Found duplicates in grid bug list - IDs must be unique")
             exit
     if ID not in nodes:
         # TODO We need to add ourself - error out for now

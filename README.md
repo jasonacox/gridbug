@@ -59,7 +59,7 @@ Simple webservice to monitor and poll other GridBug nodes to monitor network con
 See the `run.sh` startup
 
     The API service of gridbug has the following functions:
-        /           - GirdBug Console - displays graph of nodes      
+        /           - GridBug Console - displays graph of nodes      
         /text       - Human friendly display of current conditions
         /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics

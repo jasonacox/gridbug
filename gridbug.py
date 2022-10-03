@@ -146,7 +146,8 @@ def updategraph(payload=False):
             graph["nodes"].append(target)
         found = False
         for e in graph["edges"]:
-            if e["id"] == id:
+            # Update edges if from authoritative source
+            if e["id"] == id and e["source"] == source:
                 if alive:
                     e["color"] = "green"
                 else:
@@ -187,6 +188,19 @@ def pollgridbugs():
                             print("Got response from grid %s %s" % (node['id'], node['host']))   
                         log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
+                        # Attempt to send payload to update node
+                                    # Send in update
+                        try:
+                            sname = "http://%s/post" % node['host']
+                            r = requests.post(sname, json=bugs)
+                            log.debug("Sent graph to node %s %s" % (node['id'], node['host']))
+                            if CLI:
+                                print("Sent graph to node %s %s" % (node['id'], node['host']))
+                        except:
+                            log.debug("Unable to send graph to node %s" % node['host'])
+                            if CLI:
+                                print("Unable to send graph to node %s" % node['host'])
+
                     else:
                         # no response
                         if CLI:
@@ -206,11 +220,14 @@ def pollgridbugs():
             # Update graph based on discovery
             updategraph()
 
-            # Send in update
-            sname = "http://%s/post" % SERVERNODE
-            r = requests.post(sname, json=bugs)
-            if CLI:
-                print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
+            # Send in update to server node
+            try:
+                sname = "http://%s/post" % SERVERNODE
+                r = requests.post(sname, json=bugs)
+                if CLI:
+                    print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
+            except:
+                log.debug("Unable to update server %s" % SERVERNODE)
 
         time.sleep(5)
     sys.stderr.write('\r ! pollgridbugs Exit\n')
@@ -260,7 +277,8 @@ class handler(BaseHTTPRequestHandler):
 
         # Counts 
         if "Error" in message:
-            print("Error: %s" % self.path)
+            if CLI:
+                print("Error: %s" % self.path)
             serverstats['errors'] = serverstats['errors'] + 1
         else:
             if self.path in serverstats["uri"]:

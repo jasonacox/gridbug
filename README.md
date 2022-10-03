@@ -6,7 +6,7 @@ This is a simple tool to monitor network connectivity between nodes and display 
 ## How it Works
 The `gridbug.py` service pulls in a list of other gridbug nodes. It then proceeds to poll each of these nodes and records the state (link up or down).  
 
-One of the gridbug nodes can be designated as the server and the other grid nodes can send their results to that node. However, every node attempts to converge on the same graph by sending updates and polling each other. Each node builds a direction graph of connectiity between all the gridbug nodes and renders a HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
+One of the gridbug nodes can be designated as the server and the other grid nodes can send their results to that node. However, every node attempts to converge on the same graph by sending updates and polling each other. Each node builds a directional graph of connectiity between all the gridbug nodes and renders a HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
 
 ## Configuration
 

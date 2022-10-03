@@ -92,8 +92,11 @@ One of the gridbug nodes can be designated as the server and the other grid node
     curl -i http://localhost:8777/graph  # nternal graph of connectivity (JSON)
     ```
 
-
 ### Direct Running
 
-Alternatively, you can just run the python server from the `run.sh` startup script.
+Alternatively, you can just run the python server from a startup script:
+
+```bash
+python3 gridbug.py
+```
 

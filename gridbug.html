@@ -24,7 +24,7 @@
 
 		// Get Version
 		function showversion() {
-			var pwurl = window.location.protocol + "//" + window.location.hostname + "/stats";
+			var pwurl = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/stats";
 			$.getJSON(pwurl, function(data) {
 				var text = `GridBug Console [v${data.GridBug}] - ${data.node_id}`;
 				$(".title").html(text);
@@ -35,7 +35,8 @@
 		// Update Graph
 		function update_graph() {
 			// console.log("update_graph");
-			var gburl = window.location.protocol + "//" + window.location.hostname + "/graph";
+			var gburl = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/graph";
+			console.log(gburl);
 			$.getJSON(gburl, function (bugs) {
 				// console.log("graph loaded");
 				var cy = cytoscape({

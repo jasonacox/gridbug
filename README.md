@@ -1,7 +1,7 @@
 # GridBug
 Simple webservice to monitor and poll other GridBug nodes to monitor network connectivity.
 
-<img width="615" alt="image" src="https://user-images.githubusercontent.com/836718/193483485-c19a5e25-8c4f-46bd-b8f0-5853c0074f87.png">
+<img width="741" alt="image" src="https://user-images.githubusercontent.com/836718/193484099-9d20c5a4-7778-44bb-8f92-e63514d72510.png">
 
 ## Configuration
 

@@ -179,7 +179,7 @@ def updategraph(payload=False):
             source = ID
             payload = bugs
         for n in payload["gridbugs"]:
-            alive = False
+            alive = None
             target = n["id"]
             targethost = n["host"]
             # Add any new nodes to bugs database for polling
@@ -199,10 +199,12 @@ def updategraph(payload=False):
             for e in graph["edges"]:
                 if e["id"] == id and e["source"] == source:
                     e["ts"] = currentts
-                    if alive:
+                    if alive is True:
                         e["color"] = "green"
-                    else:
+                    elif alive is False:
                         e["color"] = "red"
+                    else:
+                        e["color"] = "gray"
                     found = True
                 else:
                     if "ts" in e and (e["ts"] + TTL < currentts):

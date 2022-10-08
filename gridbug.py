@@ -169,7 +169,7 @@ def updategraph(payload=False):
             # Update based on received measurements
             source = payload["node_id"]
             if "node_host" in payload:
-                sourcehost = payload["node_id"]
+                sourcehost = payload["node_host"]
             else:
                 sourcehost = ""
         else:

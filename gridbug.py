@@ -30,8 +30,9 @@
         PORT = 8777
 
         [BUGS]
-        WAIT = 10
+        POLL = 10
         TTL = 30
+        TIMEOUT = 10
 
         [ALERT]
         # Notify connectivity issues
@@ -48,8 +49,9 @@
         GB_SERVERNODE = Default node to test
         GB_GRIDKEY = Private key for grid
         GB_APIPORT = TCP Port to Listen
-        GB_WAIT = Time in seconds to wait between tests
+        GB_POLL = Time in seconds to wait between tests
         GB_TTL = Time in seconds to identify dead node
+        GB_TIMEOUT = Time in seconds to wait for response
 
     The API service of gridbug has the following functions:
         /           - GridBug Console - displays graph of nodes      
@@ -97,8 +99,9 @@ if os.path.exists(CONFIGFILE):
     APIPORT = int(config["API"]["PORT"])
 
     # GridBugs
-    GBWAIT = int(config["BUGS"]["WAIT"])
+    GBPOLL = int(config["BUGS"]["POLL"])
     TTL = int(config["BUGS"]["TTL"])
+    TIMEOUT = int(config["BUGS"]["TIMEOUT"])
     
     # Alerts
 else:
@@ -115,8 +118,9 @@ CONSOLE = os.getenv("GB_CONSOLE", CONSOLE)
 SERVERNODE = os.getenv("GB_SERVERNODE", SERVERNODE) 
 GRIDKEY = os.getenv("GB_GRIDKEY", GRIDKEY) 
 APIPORT = os.getenv("GB_APIPORT", APIPORT) 
-GBWAIT = os.getenv("GB_WAIT", GBWAIT) 
+GBPOLL = os.getenv("GB_POLL", GBPOLL) 
 TTL = os.getenv("GB_TTL", TTL) 
+TIMEOUT = os.getenv("GB_TIMEOUT", TIMEOUT) 
 
 # Logging
 log = logging.getLogger(__name__)
@@ -225,14 +229,14 @@ def pollgridbugs():
 
         # Is it time for an update?
         if currentts >= nextupdate:
-            nextupdate = currentts + GBWAIT
+            nextupdate = currentts + GBPOLL
 
             for node in bugs['gridbugs']:
                 URL = "http://%s/ping" % node['host']
                 log.debug("Ping URL = %s\n" % URL)
                 serverstats['poll'] += 1
                 try:
-                    response = requests.get(URL)
+                    response = requests.get(URL, timeout=TIMEOUT)
                     if response.status_code == 200: 
                         log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
@@ -249,7 +253,7 @@ def pollgridbugs():
                         # Attempt to poll node for any graph updates
                         try:
                             sname = "http://%s/bugs" % node['host']
-                            r = requests.get(sname)
+                            r = requests.get(sname, timeout=TIMEOUT)
                             payload = r.json()
                             updategraph(payload)
                         except:
@@ -273,7 +277,7 @@ def pollgridbugs():
             try:
                 headers = {'key': GRIDKEY}
                 sname = "http://%s/post" % SERVERNODE
-                r = requests.post(sname, json=bugs, headers=headers)
+                r = requests.post(sname, json=bugs, headers=headers, timeout=TIMEOUT)
                 log.debug(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
             except:
                 log.debug("Unable to update server %s" % SERVERNODE)

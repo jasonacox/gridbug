@@ -75,7 +75,7 @@ if [ ! -f ${GB_CONFIG} ]; then
 
     # Create GridBug Node List
     if [ ! -f ${GB_BUGS} ]; then
-        python gen.py "${GB_HOST}" "${GB_ID}"
+        python gen.py "${GB_URL}" "${GB_ID}"
         echo ""
         cat ${GB_BUGS}
         echo ""

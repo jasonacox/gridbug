@@ -167,7 +167,6 @@ def updategraph(payload=False):
     """
     global bugs, graph
     currentts = time.time()
-    alive = False
     sourcehost = ""
     if True:
         if payload:
@@ -180,6 +179,7 @@ def updategraph(payload=False):
             source = ID
             payload = bugs
         for n in payload["gridbugs"]:
+            alive = False
             target = n["id"]
             targethost = n["host"]
             # Add any new nodes to bugs database for polling
@@ -209,7 +209,7 @@ def updategraph(payload=False):
                         # Edge has aged out
                         e["color"] = "gray"
             if not found:
-                graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
+                graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive, "color": "gray"})
         return True
     else:
         sys.stderr.write("Invalid payload - ignored\n")

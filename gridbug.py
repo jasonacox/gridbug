@@ -286,8 +286,9 @@ def pollgridbugs():
 
             # Send in update to server node
             try:
+                headers = {'key': GRIDKEY}
                 sname = "http://%s/post" % SERVERNODE
-                r = requests.post(sname, json=bugs)
+                r = requests.post(sname, json=bugs, headers=headers)
                 if CLI:
                     print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
             except:
@@ -331,7 +332,7 @@ class handler(BaseHTTPRequestHandler):
                 try:
                     post_json = json.loads(post_body)
                     key = self.headers.get('key', '')
-                    log.debug("POST (key = %s) json: %r" % (key, post_json))
+                    log.debug("POST from %s (key = %s) json: %r" % (post_json["node_id"], key, post_json))
                     if key != GRIDKEY:
                         log.debug("Unauthorized Payload from %s" % post_json["node_id"])
                     else:

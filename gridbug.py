@@ -146,6 +146,17 @@ conditions = {}
 bugs = {}
 graph = {"nodes": [], "edges": []}
 
+# Add bugs to dict
+def addbug(host, id):
+    """
+    Function to add a grid bug if not already in dict
+    """
+    for b in bugs["gridbugs"]:
+        if b["id"] == id:
+            return False
+    bugs.append({"host": host, "id": id})
+    return True
+
 # Graph Functions
 def updategraph(payload=False):
     """
@@ -158,19 +169,29 @@ def updategraph(payload=False):
         if payload:
             # Update based on received measurements
             source = payload["node_id"]
+            if "node_host" in payload:
+                sourcehost = payload["node_id"]
+            else:
+                sourcehost = ""
         else:
             # Update based on our measurements
             source = ID
             payload = bugs
         for n in payload["gridbugs"]:
             target = n["id"]
+            targethost = n["host"]
             if "alive" in n:
                 alive = n["alive"]
             id = "%s.%s" % (source,target)
             if source not in graph["nodes"]:
                 graph["nodes"].append(source)
+                if sourcehost != "":
+                    if addbug(sourcehost, source):
+                        log.debug("Added bug %s %s" % (sourcehost, source))
             if target not in graph["nodes"]:
                 graph["nodes"].append(target)
+                if addbug(targethost, source):
+                    log.debug("Added bug %s %s" % (targethost, source))
             found = False
             for e in graph["edges"]:
                 # Update edges if from authoritative source
@@ -480,6 +501,8 @@ if __name__ == "__main__":
             sys.stderr.write("ERROR: Found duplicates in grid bug list - IDs must be unique\n")
             sys.exit()
         nodes.append(n["id"])
+        if n["id"] == ID:
+            HOST = n["host"]    # Self Hostname of Grid Node
         print(n)
     if ID not in nodes:
         # TODO We need to add ourself - error out for now
@@ -491,6 +514,7 @@ if __name__ == "__main__":
     bugs['node_id'] = ID
     bugs['node_role'] = ROLE
     bugs['node_build'] = BUILD
+    bugs['node_host'] = HOST
 
     # Start threads
     sys.stderr.write("* Starting threads\n")

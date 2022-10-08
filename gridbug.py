@@ -165,7 +165,7 @@ def updategraph(payload=False):
     global bugs, graph
     currentts = time.time()
     alive = False
-    try:
+    if True:
         if payload:
             # Update based on received measurements
             source = payload["node_id"]
@@ -211,7 +211,7 @@ def updategraph(payload=False):
         if CLI:
             print("> GRAPH < %r" % graph)
         return True
-    except:
+    else:
         sys.stderr.write("Invalid payload - ignored\n")
         return False
 

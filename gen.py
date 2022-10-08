@@ -51,7 +51,7 @@ while True:
         break
     bugs["gridbugs"].append({"host": host, "id": id})
     print("")
-    x = x = 1
+    x = x + 1
 
 print("")
 print("Writing out %s..." % BUGSFILE)

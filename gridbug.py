@@ -448,6 +448,7 @@ if __name__ == "__main__":
     sys.stderr.write("* Configuration Loaded [%s]\n" % CONFIGFILE)
     sys.stderr.write(" + GridBug - Debug: %s, Activate API: %s, API Port: %s\n" 
         % (DEBUGMODE, API, APIPORT))
+    sys.stderr.write(" + GridKey: [%s]\n" % GRIDKEY)
 
     # Load the bugs
     if BUGLISTURL == "":

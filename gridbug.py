@@ -183,19 +183,21 @@ def updategraph(payload=False):
         for n in payload["gridbugs"]:
             target = n["id"]
             targethost = n["host"]
+            # Add any new nodes to bugs database for polling
+            if sourcehost != "":
+                addbug(sourcehost, source)
+            addbug(targethost, source)
+            # Update graph
             if "alive" in n:
                 alive = n["alive"]
             id = "%s.%s" % (source,target)
             if source not in graph["nodes"]:
                 graph["nodes"].append(source)
-                if sourcehost != "":
-                    addbug(sourcehost, source)
             if target not in graph["nodes"]:
                 graph["nodes"].append(target)
-                addbug(targethost, source)
             found = False
+            # Update edges if they are from an authorized source
             for e in graph["edges"]:
-                # Update edges if from authoritative source
                 if e["id"] == id and e["source"] == source:
                     e["ts"] = currentts
                     if alive:

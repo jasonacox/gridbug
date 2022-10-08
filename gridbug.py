@@ -466,8 +466,8 @@ if __name__ == "__main__":
     thread_api = threading.Thread(target=api, args=(APIPORT,))
     
     # Print header
-    sys.stderr.write("GridBug %s [%s] - Node ID: %s at %s\n" % (ROLE.title(), BUILD, ID, NODEURL))
-    sys.stderr.write("* Configuration Loaded [%s]\n" % CONFIGFILE)
+    sys.stderr.write("GridBug %s [%s] - Node ID: %s\n" % (ROLE.title(), BUILD, ID))
+    sys.stderr.write("* Validating Configuration [%s]\n" % CONFIGFILE)
     sys.stderr.write(" + GridBug - Debug: %s, Activate API: %s, API Port: %s\n" 
         % (DEBUGMODE, API, APIPORT))
     sys.stderr.write(" + GridKey: [%s]\n" % GRIDKEY)
@@ -476,13 +476,13 @@ if __name__ == "__main__":
     if NODEURL.startswith("http:") or NODEURL.startswith("https:"):
         NODEURL = NODEURL.replace("http://","")
         NODEURL = NODEURL.replace("https://","")
-        sys.stderr.write("* NOTICE: Removed http prefix from NODEURL %s.\n" % NODEURL)
+        sys.stderr.write(" * NOTICE: Removed http prefix from NODEURL %s.\n" % NODEURL)
     if SERVERNODE.startswith("http:") or SERVERNODE.startswith("https:"):
         SERVERNODE = SERVERNODE.replace("http://","")
         SERVERNODE = SERVERNODE.replace("https://","")
-        sys.stderr.write("* NOTICE: Removed http prefix from SERVERNODE %s.\n" % SERVERNODE)
+        sys.stderr.write(" * NOTICE: Removed http prefix from SERVERNODE %s.\n" % SERVERNODE)
     if NODEURL.startswith("localhost") or NODEURL.startswith("example.com"):
-        sys.stderr.write("! WARNING: Setting my NODEURL to %s may not be what you want.\n" % NODEURL)
+        sys.stderr.write(" ! WARNING: Setting my NODEURL to %s may not be what you want.\n" % NODEURL)
 
     # Load the bugs
     if BUGLISTURL == "":
@@ -494,7 +494,7 @@ if __name__ == "__main__":
                 sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                     % (GRIDBUGLIST, len(bugs['gridbugs']), bugs['version']))
         except:
-            sys.stderr.write("! ERROR: Unable to load grid bug list - tried %s\n" % GRIDBUGLIST)
+            sys.stderr.write(" ! ERROR: Unable to load grid bug list - tried %s\n" % GRIDBUGLIST)
             sys.exit()
     else:
         # Load from URL
@@ -504,14 +504,14 @@ if __name__ == "__main__":
             sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                 % (BUGLISTURL, len(bugs['gridbugs']), bugs['version']))
         except:
-            sys.stderr.write("! ERROR: Unable to load grid bug list - tried %s\n" % BUGLISTURL)
+            sys.stderr.write(" ! ERROR: Unable to load grid bug list - tried %s\n" % BUGLISTURL)
             sys.exit()
 
     # Validate bugs DB
     nodes = []
     for n in bugs['gridbugs']:
         if n["id"] in nodes:
-            sys.stderr.write("! ERROR: Found duplicates in grid bug list - IDs must be unique\n")
+            sys.stderr.write(" ! ERROR: Found duplicates in grid bug list - IDs must be unique\n")
             sys.exit()
         nodes.append(n["id"])
         if n["id"] == ID:
@@ -519,7 +519,7 @@ if __name__ == "__main__":
         print(n)
     if ID not in nodes:
         # We need to add ourself
-        sys.stderr.write("* NOTICE: Adding myself to the grid bug list (%s, %s)\n" % (ID, NODEURL))
+        sys.stderr.write(" * NOTICE: Adding myself to the grid bug list (%s, %s)\n" % (ID, NODEURL))
         addbug(NODEURL, ID)
 
     # Add local identity to DB
@@ -529,6 +529,7 @@ if __name__ == "__main__":
     bugs['node_host'] = NODEURL
 
     # Start threads
+    sys.stderr.write("\nGridBug %s [%s] - Node ID: %s at %s\n" % (ROLE.title(), BUILD, ID, NODEURL))
     sys.stderr.write("* Starting threads\n")
     thread_pollgridbugs.start()
     thread_api.start()

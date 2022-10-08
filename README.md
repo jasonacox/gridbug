@@ -8,13 +8,6 @@ The `gridbug.py` service pulls in a list of other GridBug nodes. It then proceed
 
 All of the GridBug nodes act as servers and clients.  Every node attempts to converge on the same graph by polling and sharing updates with each other. Each node builds a directional graph of connectivity between all the GridBug nodes and renders that as an HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
 
-## Configuration
-
-### Environmental Settings
-
-* GRIDBUGCONF = Path to gridbug.conf config file
-* GRIDBUGLIST = Path to gridbugs.json node list
-* BUGLISTURL = URL to gridbugs.json (overrides above)
 
 ## Quick Start
 
@@ -64,11 +57,11 @@ A `setup.sh` script is available to help get you started.
     [ALERT]
     # Notify connectivity issues - TODO
     ENABLE = yes
-    ```                             
+    ```
+    
+    * Note: There are environmental overrides that can be used to set all of the above configuration options.
 
 3. Create a `gridbugs.json` seed file and add some nodes for your grid. The `host` is the address and should include the port (e.g. `:8777`) where `id` is the unique name of the node (matching gridbug.conf `ID`) for each node.
-
-    * This does not need to be the complete list of GridBugs in your network as GridBug will propagate discovered notes across the grid. If `host` and `id` are missing for the local node, it will automatically add `ID` and `NODEURL` from above config.
 
     ```json
     {
@@ -85,6 +78,8 @@ A `setup.sh` script is available to help get you started.
         }]
     }
     ```
+
+    * Note: This does not need to be the complete list of GridBugs in your network as GridBug will propagate discovered notes across the grid. If `host` and `id` are missing for the local node, it will automatically add `ID` and `NODEURL` from above config.
 
 4. Run the Docker Container to listen on port 8777.
 

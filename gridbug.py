@@ -76,7 +76,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from socketserver import ThreadingMixIn 
 import configparser
 
-BUILD = "0.0.2"
+BUILD = "0.0.3"
 MAXPAYLOAD = 4000       # Reject payload if above this size
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
 GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
@@ -150,6 +150,7 @@ graph = {"nodes": [], "edges": []}
 
 # Add bugs to dict
 def addbug(host, id):
+    global bugs
     """
     Function to add a grid bug if not already in dict
     """
@@ -182,13 +183,13 @@ def updategraph(payload=False):
             alive = None
             target = n["id"]
             targethost = n["host"]
+            if "alive" in n:
+                alive = n["alive"]
             # Add any new nodes to bugs database for polling
             if sourcehost != "":
                 addbug(sourcehost, source)
             addbug(targethost, source)
             # Update graph
-            if "alive" in n:
-                alive = n["alive"]
             id = "%s.%s" % (source,target)
             if source not in graph["nodes"]:
                 graph["nodes"].append(source)
@@ -258,6 +259,7 @@ def pollgridbugs():
                             sname = "http://%s/bugs" % node['host']
                             r = requests.get(sname, timeout=TIMEOUT)
                             payload = r.json()
+                            log.debug("GET: %r" % payload)
                             updategraph(payload)
                         except:
                             log.debug("Unable to update graph from node %s" % node['host'])

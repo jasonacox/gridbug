@@ -1,12 +1,12 @@
 # GridBug
-This is a simple tool to monitor network connectivity between nodes and display status graph.
+This is a simple tool to monitor network connectivity between nodes and display a graph.
 
 <img width="489" alt="image" src="https://user-images.githubusercontent.com/836718/193515045-d705c6d2-6918-449d-bb98-4e1ee0e98a0d.png">
 
 ## How it Works
-The `gridbug.py` service pulls in a list of other gridbug nodes. It then proceeds to poll each of these nodes and records the state (link up or down).  
+The `gridbug.py` service pulls in a list of other GridBug nodes. It then proceeds to poll each of these nodes and records the state (link up or down).  
 
-One of the gridbug nodes can be designated as the server and the other grid nodes can send their results to that node. However, every node attempts to converge on the same graph by sending updates and polling each other. Each node builds a directional graph of connectiity between all the gridbug nodes and renders a HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
+All of the GridBug nodes act as servers and clients.  Every node attempts to converge on the same graph by polling and sharing updates with each other. Each node builds a directional graph of connectivity between all the GridBug nodes and renders that as an HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
 
 ## Configuration
 
@@ -18,7 +18,7 @@ One of the gridbug nodes can be designated as the server and the other grid node
 
 ## Quick Start
 
-The project has a `setup.sh` script to help get you started.  Before you do, you should have a plan:
+A `setup.sh` script is available to help get you started.
 
 * **ID** - Every GridBug node needs a unique `ID` that will show up on the visualization. Make this descriptive enough to identify where it is on the grid.  For example, 'CA-datacenter' and 'East-1-Cloud'.  Each node will also need a URL (hostname:8777) that is accessible by the other GridBug nodes.
 * **GRIDKEY** - You will need to set a unique key (string of alphanumeric characters without spaces) for your grid network. This will be a shared key by all the GridBug nodes to authenticate other friendly GridNodes. This allow for dynamically adding new nodes to the grid as well.

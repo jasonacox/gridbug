@@ -154,6 +154,7 @@ def addbug(host, id):
     """
     Function to add a grid bug if not already in dict
     """
+    log.debug("ADDBUG: %s %s" % (id, host))
     for b in bugs["gridbugs"]:
         if b["id"] == id:
             return False

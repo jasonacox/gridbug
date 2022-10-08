@@ -190,7 +190,7 @@ def updategraph(payload=False):
             # Add any new nodes to bugs database for polling
             if sourcehost != "":
                 addbug(sourcehost, source)
-            addbug(targethost, source)
+            addbug(targethost, target)
             # Update graph
             id = "%s.%s" % (source,target)
             if source not in graph["nodes"]:

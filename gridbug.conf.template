@@ -1,16 +1,16 @@
 [GRIDBUG]
-DEBUG = yes
-ID = mbp
-NODEURL = 10.0.1.68:8777
-ROLE = server
+DEBUG = no
+ID = ZZ_ID
+NODEURL = ZZ_URL
+ROLE = node
 CONSOLE = gridbug.html
-SERVERNODE = localhost:8777
-GRIDKEY = CRuphacroN2hOfachlsWipaxi4ude1rlbIn4v0Vispiho7tuWeSPADrUdR2pE0rl
+SERVERNODE = ZZ_URL
+GRIDKEY = ZZ_KEY
 
 [API]
 # Port for API requests
 ENABLE = yes
-PORT = 8777
+PORT = ZZ_PORT
 
 [BUGS]
 # Gridbug node settings

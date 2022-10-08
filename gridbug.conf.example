@@ -1,0 +1,24 @@
+[GRIDBUG]
+DEBUG = yes
+ID = homesite
+NODEURL = 10.0.1.8:8777
+ROLE = node
+CONSOLE = gridbug.html
+SERVERNODE = localhost:8777
+GRIDKEY = CRuphacroN2hOfachlsWipaxi4ude1rlbIn4v0Vispiho7tuWeSPADrUdR2pE0rl
+
+[API]
+# Port for API requests
+ENABLE = yes
+PORT = 8777
+
+[BUGS]
+# Gridbug node settings
+POLL = 10
+TTL = 60
+TIMEOUT = 10
+
+[ALERT]
+# Notify connectivity issues
+ENABLE = yes
+# TODO add ability to alert

@@ -149,17 +149,17 @@ bugs = {}
 graph = {"nodes": [], "edges": []}
 
 # Add bugs to dict
-def addbug(host, id):
+def addbug(hostname, host_id):
     global bugs
     """
     Function to add a grid bug if not already in dict
     """
-    log.debug("ADDBUG: %s %s" % (id, host))
+    log.debug("ADDBUG: %s %s" % (host_id, hostname))
     for b in bugs["gridbugs"]:
-        if b["id"] == id:
+        if b["id"] == host_id:
             return False
-    bugs["gridbugs"].append({"host": host, "id": id})
-    log.debug("GRAPH: Added bug %s %s" % (id, host))
+    bugs["gridbugs"].append({"host": hostname, "id": host_id})
+    log.debug("GRAPH: Added bug %s %s" % (host_id, hostname))
     return True
 
 # Graph Functions

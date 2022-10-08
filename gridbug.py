@@ -22,6 +22,7 @@
         ROLE = node
         CONSOLE = gridbug.html
         SERVERNODE = localhost:8777
+        GRIDKEY = CRuphacroN2hOfachlsWipaxi4ude1rlbIn4v0Vispiho7tuWeSPADrUdR2pE0rl
 
         [API]
         # Port for API requests
@@ -36,10 +37,19 @@
         # Notify connectivity issues
         ENABLE = yes
 
-    ENVIRONMENTAL:
+    ENVIRONMENTAL (overrides above):
         GRIDBUGCONF = Path to gridbug.conf config file
         GRIDBUGLIST = Path to gridbugs.json node list
-        BUGLISTURL = URL to gridbugs.json (overrides above)
+        BUGLISTURL = URL to gridbugs.json (overrides config)
+        GRIDKEY = Private key for grid (overrides above)
+        GB_ROLE = node or server
+        GB_ID = Node ID
+        GB_CONSOLE = HTML file for console
+        GB_SERVERNODE = Default node to test
+        GB_GRIDKEY = Private key for grid
+        GB_APIPORT = TCP Port to Listen
+        GB_WAIT = Time in seconds to wait between tests
+        GB_TTL = Time in seconds to identify dead node
 
     The API service of gridbug has the following functions:
         /           - GridBug Console - displays graph of nodes      
@@ -64,7 +74,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from socketserver import ThreadingMixIn 
 import configparser
 
-BUILD = "0.0.1"
+BUILD = "0.0.2"
+MAXPAYLOAD = 4000       # Reject payload if above this size
 CLI = False
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
 GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
@@ -80,6 +91,7 @@ if os.path.exists(CONFIGFILE):
     ROLE = config["GRIDBUG"]["ROLE"]
     CONSOLE = config["GRIDBUG"]["CONSOLE"]
     SERVERNODE = config["GRIDBUG"]["SERVERNODE"]
+    GRIDKEY = config["GRIDBUG"]["GRIDKEY"]
 
     # GridBug API
     API = config["API"]["ENABLE"].lower() == "yes"
@@ -96,6 +108,16 @@ else:
     sys.stderr.flush()
     while(True):
         time.sleep(3600)
+
+# Environment vars override config
+ROLE = os.getenv("GB_ROLE", ROLE) 
+ID = os.getenv("GB_ID", ID) 
+CONSOLE = os.getenv("GB_CONSOLE", CONSOLE) 
+SERVERNODE = os.getenv("GB_SERVERNODE", SERVERNODE) 
+GRIDKEY = os.getenv("GB_GRIDKEY", GRIDKEY) 
+APIPORT = os.getenv("GB_APIPORT", APIPORT) 
+GBWAIT = os.getenv("GB_WAIT", GBWAIT) 
+TTL = os.getenv("GB_TTL", TTL) 
 
 # Logging
 log = logging.getLogger(__name__)
@@ -131,39 +153,44 @@ def updategraph(payload=False):
     """
     global bugs, graph
     currentts = time.time()
-    if payload:
-        # Update based on received measurements
-        source = payload["node_id"]
-    else:
-        # Update based on our measurements
-        source = ID
-        payload = bugs
-    for n in payload["gridbugs"]:
-        target = n["id"]
-        alive = n["alive"]
-        id = "%s.%s" % (source,target)
-        if source not in graph["nodes"]:
-            graph["nodes"].append(source)
-        if target not in graph["nodes"]:
-            graph["nodes"].append(target)
-        found = False
-        for e in graph["edges"]:
-            # Update edges if from authoritative source
-            if e["id"] == id and e["source"] == source:
-                e["ts"] = currentts
-                if alive:
-                    e["color"] = "green"
+    try:
+        if payload:
+            # Update based on received measurements
+            source = payload["node_id"]
+        else:
+            # Update based on our measurements
+            source = ID
+            payload = bugs
+        for n in payload["gridbugs"]:
+            target = n["id"]
+            alive = n["alive"]
+            id = "%s.%s" % (source,target)
+            if source not in graph["nodes"]:
+                graph["nodes"].append(source)
+            if target not in graph["nodes"]:
+                graph["nodes"].append(target)
+            found = False
+            for e in graph["edges"]:
+                # Update edges if from authoritative source
+                if e["id"] == id and e["source"] == source:
+                    e["ts"] = currentts
+                    if alive:
+                        e["color"] = "green"
+                    else:
+                        e["color"] = "red"
+                    found = True
                 else:
-                    e["color"] = "red"
-                found = True
-            else:
-                if "ts" in e and (e["ts"] + TTL < currentts):
-                    # Edge has aged out
-                    e["color"] = "gray"
-        if not found:
-            graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
-    if CLI:
-        print("> GRAPH < %r" % graph)
+                    if "ts" in e and (e["ts"] + TTL < currentts):
+                        # Edge has aged out
+                        e["color"] = "gray"
+            if not found:
+                graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
+        if CLI:
+            print("> GRAPH < %r" % graph)
+        return True
+    except:
+        sys.stderr.write("Invalid payload - ignored\n")
+        return False
 
 # Threads
 def pollgridbugs():
@@ -197,8 +224,9 @@ def pollgridbugs():
                         node['alive'] = True 
                         # Attempt to send payload to update node
                         try:
+                            headers = {'key': GRIDKEY}
                             sname = "http://%s/post" % node['host']
-                            r = requests.post(sname, json=bugs)
+                            r = requests.post(sname, json=bugs, headers=headers)
                             log.debug("Sent graph to node %s %s" % (node['id'], node['host']))
                             if CLI:
                                 print("Sent graph to node %s %s" % (node['id'], node['host']))
@@ -275,7 +303,7 @@ class handler(BaseHTTPRequestHandler):
         if self.path == '/post':
             message = '{"status": "OK"}'   
             content_len = int(self.headers.get('content-length', 0))
-            if content_len > 2000:
+            if content_len > MAXPAYLOAD:
                 message = "Error: Heavy Payload"
             else:
                 post_body = self.rfile.read(content_len)
@@ -283,7 +311,11 @@ class handler(BaseHTTPRequestHandler):
                     post_json = json.loads(post_body)
                     if CLI:
                         print("POST json: %r" % post_json)
-                    updategraph(post_json)
+                    key = self.headers.get('key', '')
+                    if key != GRIDKEY:
+                        log.debug("Unauthorized Payload")
+                    else:
+                        updategraph(post_json)
                 except:
                     message = "Error: Invalid Payload"
         else:
@@ -426,8 +458,8 @@ if __name__ == "__main__":
                 sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                     % (GRIDBUGLIST, len(bugs['gridbugs']), bugs['version']))
         except:
-            print("ERROR: Unable to load grid bug list - tried %s" % GRIDBUGLIST)
-            exit
+            sys.stderr.write("ERROR: Unable to load grid bug list - tried %s\n" % GRIDBUGLIST)
+            sys.exit()
     else:
         # Load from URL
         try:
@@ -436,22 +468,22 @@ if __name__ == "__main__":
             sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                 % (BUGLISTURL, len(bugs['gridbugs']), bugs['version']))
         except:
-            print("ERROR: Unable to load grid bug list - tried %s" % BUGLISTURL)
-            exit
+            sys.stderr.write("ERROR: Unable to load grid bug list - tried %s\n" % BUGLISTURL)
+            sys.exit()
 
     # Validate bugs DB
     nodes = []
     for n in bugs['gridbugs']:
         if n["id"] in nodes:
-            print("ERROR: Found duplicates in grid bug list - IDs must be unique")
-            exit
+            sys.stderr.write("ERROR: Found duplicates in grid bug list - IDs must be unique\n")
+            sys.exit()
         nodes.append(n["id"])
+        print(n)
     if ID not in nodes:
         # TODO We need to add ourself - error out for now
         # me = {"id": ID, "host": "localhost"}
-        print("ERROR: Unable to find myself in the grid bug list - exiting")
-        print(nodes)
-        exit
+        sys.stderr.write("ERROR: Unable to find myself in the grid bug list - exiting\n")
+        sys.exit()
 
     # Add local identity to DB
     bugs['node_id'] = ID

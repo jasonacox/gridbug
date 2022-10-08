@@ -55,6 +55,8 @@ if [ ! -f ${GB_CONFIG} ]; then
     read -p 'External URL with port (e.g. example.com:8777): ' GB_URL
     read -p 'Unique Grid Key: ' GB_KEY
     read -p 'TCP Port to use (e.g. 8777): ' GB_PORT
+    if [ -z "${GB_PORT}" ]; then 
+        GB_PORT=8777
     cp "${GB_CONFIG_TEMPLATE}" "${GB_CONFIG}"
     sed -i.bak "s@ZZ_ID@${GB_ID}@g;s@ZZ_URL@${GB_URL}@g;s@ZZ_KEY@${GB_KEY}@g;;s@ZZ_PORT@${GB_PORT}@g" "${GB_CONFIG}"
     echo ""

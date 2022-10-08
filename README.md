@@ -18,17 +18,20 @@ One of the gridbug nodes can be designated as the server and the other grid node
 
 ## Quick Start
 
-1. Create a `gridbug.conf` file and update with your specific location details. Make sure you update `ID` to be the unique name of the node.
+1. Create a `gridbug.conf` file (example below) and update with your specific location details. Make sure you update `ID` to be the unique name of the node.  
+
+2. The `GRIDKEY` token should be a unique key (string of alphanumeric characters). It should be the same for all the GridBug nodes in your network.  GridBug will reject any updates from nodes that do not match this key.
 
 * gridbug.conf - Configuration File
     ```conf
     [GRIDBUG]
     DEBUG = no
-    # Unique name of this node
     ID = localhost
+    NODEURL = example.com:8777
     ROLE = node
     CONSOLE = gridbug.html
     SERVERNODE = localhost:8777
+    GRIDKEY = CRuphacroN2hOfachlsWipaxi4ude1rlbIn4v0Vispiho7tuWeSPADrUdR2pE0rl
 
     [API]
     # Port for API requests
@@ -36,18 +39,19 @@ One of the gridbug nodes can be designated as the server and the other grid node
     PORT = 8777
 
     [BUGS]
-    # List of gridbug nodes
-    WAIT = 10
-    TTL = 60
+    POLL = 10
+    TTL = 30
+    TIMEOUT = 10
 
     [ALERT]
-    # Notify connectivity issues
+    # Notify connectivity issues - TODO
     ENABLE = yes
     ```                             
 
-1. Create a `gridbugs.json` file and add the list of nodes for your grid. The `host` is the address and should include the port (8777) where `id` is the unique name of the node (matching gridbug.conf `ID`) for each node.
+3. Create a `gridbugs.json` seed file and add some nodes for your grid. The `host` is the address and should include the port (e.g. `:8777`) where `id` is the unique name of the node (matching gridbug.conf `ID`) for each node.
 
-* gridbugs.json - List of Grid Nodes
+    * This does not need to be the complete list of GridBugs in your network as GridBug will propagate discovered notes across the grid. If `host` and `id` are missing for the local node, it will automatically add `ID` and `NODEURL` from above config.
+
     ```json
     {
         "version": 1,
@@ -64,7 +68,7 @@ One of the gridbug nodes can be designated as the server and the other grid node
     }
     ```
 
-3. Run the Docker Container to listen on port 8777.
+4. Run the Docker Container to listen on port 8777.
 
     ```bash
     docker run \
@@ -78,7 +82,7 @@ One of the gridbug nodes can be designated as the server and the other grid node
     jasonacox/gridbug
     ```
 
-3. View the GridBug Console and API Calls
+5. View the GridBug Console and API Calls
 
     Console: http://localhost:8777/
 

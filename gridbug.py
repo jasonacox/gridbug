@@ -18,7 +18,7 @@
         [GRIDBUG]
         DEBUG = no
         ID = localhost
-        # Role: server, node
+        NODEURL = example.com:8777
         ROLE = node
         CONSOLE = gridbug.html
         SERVERNODE = localhost:8777
@@ -45,6 +45,7 @@
         GRIDKEY = Private key for grid (overrides above)
         GB_ROLE = node or server
         GB_ID = Node ID
+        GB_NODEURL = The URL to this node the grid will use
         GB_CONSOLE = HTML file for console
         GB_SERVERNODE = Default node to test
         GB_GRIDKEY = Private key for grid
@@ -93,6 +94,7 @@ if os.path.exists(CONFIGFILE):
     CONSOLE = config["GRIDBUG"]["CONSOLE"]
     SERVERNODE = config["GRIDBUG"]["SERVERNODE"]
     GRIDKEY = config["GRIDBUG"]["GRIDKEY"]
+    NODEURL = config["GRIDBUG"]["NODEURL"]
 
     # GridBug API
     API = config["API"]["ENABLE"].lower() == "yes"
@@ -114,6 +116,7 @@ else:
 # Environment vars override config
 ROLE = os.getenv("GB_ROLE", ROLE) 
 ID = os.getenv("GB_ID", ID) 
+NODEURL = os.getenv("GB_NODEURL", NODEURL) 
 CONSOLE = os.getenv("GB_CONSOLE", CONSOLE) 
 SERVERNODE = os.getenv("GB_SERVERNODE", SERVERNODE) 
 GRIDKEY = os.getenv("GB_GRIDKEY", GRIDKEY) 
@@ -154,7 +157,6 @@ def addbug(hostname, host_id):
     """
     Function to add a grid bug if not already in dict
     """
-    log.debug("ADDBUG: %s %s" % (host_id, hostname))
     for b in bugs["gridbugs"]:
         if b["id"] == host_id:
             return False
@@ -170,13 +172,12 @@ def updategraph(payload=False):
     global bugs, graph
     currentts = time.time()
     sourcehost = ""
-    if True:
+    try:
         if payload:
             # Update based on received measurements
             source = payload["node_id"]
             if "node_host" in payload:
                 sourcehost = payload["node_host"]
-            log.debug("UPDATEGRAPH: sourcehost=%s source=%s" % (sourcehost, source))
         else:
             # Update based on our measurements
             source = ID
@@ -216,8 +217,8 @@ def updategraph(payload=False):
             if not found:
                 graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive, "color": "gray"})
         return True
-    else:
-        sys.stderr.write("Invalid payload - ignored\n")
+    except:
+        sys.stderr.write("UPDATEGRAPH: Invalid payload - ignored\n")
         return False
 
 # Threads
@@ -243,6 +244,8 @@ def pollgridbugs():
                 serverstats['poll'] += 1
                 try:
                     response = requests.get(URL, timeout=TIMEOUT)
+                    if not running:
+                        return
                     if response.status_code == 200: 
                         log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
@@ -258,6 +261,8 @@ def pollgridbugs():
                             log.debug("Unable to send graph to node %s" % node['host'])
                         # Attempt to poll node for any graph updates
                         try:
+                            if not running:
+                                return
                             sname = "http://%s/bugs" % node['host']
                             r = requests.get(sname, timeout=TIMEOUT)
                             payload = r.json()
@@ -282,6 +287,8 @@ def pollgridbugs():
 
             # Send in update to server node
             try:
+                if not running:
+                    return
                 headers = {'key': GRIDKEY}
                 sname = "http://%s/post" % SERVERNODE
                 r = requests.post(sname, json=bugs, headers=headers, timeout=TIMEOUT)
@@ -362,7 +369,7 @@ class handler(BaseHTTPRequestHandler):
         message = "Error"
         contenttype = 'application/json'
         result = {}  # placeholder
-        if self.path == '/ping':
+        if self.path == '/ping' or self.path == '/stop':
             message = '{"status": "OK"}'
         elif self.path == '/favicon.ico':
             contenttype = 'image/x-icon'
@@ -459,11 +466,23 @@ if __name__ == "__main__":
     thread_api = threading.Thread(target=api, args=(APIPORT,))
     
     # Print header
-    sys.stderr.write("GridBug %s [%s] - ID: %s\n" % (ROLE.title(), BUILD, ID))
+    sys.stderr.write("GridBug %s [%s] - Node ID: %s at %s\n" % (ROLE.title(), BUILD, ID, NODEURL))
     sys.stderr.write("* Configuration Loaded [%s]\n" % CONFIGFILE)
     sys.stderr.write(" + GridBug - Debug: %s, Activate API: %s, API Port: %s\n" 
         % (DEBUGMODE, API, APIPORT))
     sys.stderr.write(" + GridKey: [%s]\n" % GRIDKEY)
+
+    # Data Validation and Warnings
+    if NODEURL.startswith("http:") or NODEURL.startswith("https:"):
+        NODEURL = NODEURL.replace("http://","")
+        NODEURL = NODEURL.replace("https://","")
+        sys.stderr.write("* NOTICE: Removed http prefix from NODEURL %s.\n" % NODEURL)
+    if SERVERNODE.startswith("http:") or SERVERNODE.startswith("https:"):
+        SERVERNODE = SERVERNODE.replace("http://","")
+        SERVERNODE = SERVERNODE.replace("https://","")
+        sys.stderr.write("* NOTICE: Removed http prefix from SERVERNODE %s.\n" % SERVERNODE)
+    if NODEURL.startswith("localhost") or NODEURL.startswith("example.com"):
+        sys.stderr.write("! WARNING: Setting my NODEURL to %s may not be what you want.\n" % NODEURL)
 
     # Load the bugs
     if BUGLISTURL == "":
@@ -475,7 +494,7 @@ if __name__ == "__main__":
                 sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                     % (GRIDBUGLIST, len(bugs['gridbugs']), bugs['version']))
         except:
-            sys.stderr.write("ERROR: Unable to load grid bug list - tried %s\n" % GRIDBUGLIST)
+            sys.stderr.write("! ERROR: Unable to load grid bug list - tried %s\n" % GRIDBUGLIST)
             sys.exit()
     else:
         # Load from URL
@@ -485,30 +504,29 @@ if __name__ == "__main__":
             sys.stderr.write(" + Loaded [%s]: %d bugs loaded (version %d)\n" 
                 % (BUGLISTURL, len(bugs['gridbugs']), bugs['version']))
         except:
-            sys.stderr.write("ERROR: Unable to load grid bug list - tried %s\n" % BUGLISTURL)
+            sys.stderr.write("! ERROR: Unable to load grid bug list - tried %s\n" % BUGLISTURL)
             sys.exit()
 
     # Validate bugs DB
     nodes = []
     for n in bugs['gridbugs']:
         if n["id"] in nodes:
-            sys.stderr.write("ERROR: Found duplicates in grid bug list - IDs must be unique\n")
+            sys.stderr.write("! ERROR: Found duplicates in grid bug list - IDs must be unique\n")
             sys.exit()
         nodes.append(n["id"])
         if n["id"] == ID:
-            HOST = n["host"]    # Self Hostname of Grid Node
+            NODEURL = n["host"]    # Self Hostname of Grid Node
         print(n)
     if ID not in nodes:
-        # TODO We need to add ourself - error out for now
-        # me = {"id": ID, "host": "localhost"}
-        sys.stderr.write("ERROR: Unable to find myself in the grid bug list - exiting\n")
-        sys.exit()
+        # We need to add ourself
+        sys.stderr.write("* NOTICE: Adding myself to the grid bug list (%s, %s)\n" % (ID, NODEURL))
+        addbug(NODEURL, ID)
 
     # Add local identity to DB
     bugs['node_id'] = ID
     bugs['node_role'] = ROLE
     bugs['node_build'] = BUILD
-    bugs['node_host'] = HOST
+    bugs['node_host'] = NODEURL
 
     # Start threads
     sys.stderr.write("* Starting threads\n")
@@ -524,7 +542,7 @@ if __name__ == "__main__":
         running = False
         # Close down API thread
         requests.get('http://localhost:%d/stop' % APIPORT)
-        print("\r", end="")
+        sys.stderr.write("\n")
 
     sys.stderr.write("* Stopping\n")
     sys.stderr.flush()

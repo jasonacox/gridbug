@@ -529,7 +529,7 @@ if __name__ == "__main__":
     bugs['node_host'] = NODEURL
 
     # Start threads
-    sys.stderr.write("\nGridBug %s [%s] - Node ID: %s at %s\n" % (ROLE.title(), BUILD, ID, NODEURL))
+    sys.stderr.write("\nGridBug %s [%s] - Running Node ID: %s on %s\n" % (ROLE.title(), BUILD, ID, NODEURL))
     sys.stderr.write("* Starting threads\n")
     thread_pollgridbugs.start()
     thread_api.start()

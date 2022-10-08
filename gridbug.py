@@ -176,7 +176,7 @@ def updategraph(payload=False):
             source = payload["node_id"]
             if "node_host" in payload:
                 sourcehost = payload["node_host"]
-            log.debug("UPDATEGRAPH: sourcehost=%s source=" % (sourcehost, source))
+            log.debug("UPDATEGRAPH: sourcehost=%s source=%s" % (sourcehost, source))
         else:
             # Update based on our measurements
             source = ID

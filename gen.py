@@ -24,8 +24,6 @@ except NameError:
 BUGSFILE = "gridbugs.json"
 bugs = {"version": 1, "gridbugs": []}
 
-print(len(sys.argv))
-
 if len(sys.argv) >= 3:
     # Add command line node entry
     host = sys.argv[1]

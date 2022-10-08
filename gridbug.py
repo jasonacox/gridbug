@@ -154,7 +154,7 @@ def addbug(host, id):
     for b in bugs["gridbugs"]:
         if b["id"] == id:
             return False
-    bugs.append({"host": host, "id": id})
+    bugs["gridbugs"].append({"host": host, "id": id})
     return True
 
 # Graph Functions

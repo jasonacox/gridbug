@@ -168,14 +168,13 @@ def updategraph(payload=False):
     global bugs, graph
     currentts = time.time()
     alive = False
+    sourcehost = ""
     if True:
         if payload:
             # Update based on received measurements
             source = payload["node_id"]
             if "node_host" in payload:
                 sourcehost = payload["node_host"]
-            else:
-                sourcehost = ""
         else:
             # Update based on our measurements
             source = ID

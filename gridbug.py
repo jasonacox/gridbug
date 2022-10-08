@@ -76,7 +76,6 @@ import configparser
 
 BUILD = "0.0.2"
 MAXPAYLOAD = 4000       # Reject payload if above this size
-CLI = False
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
 GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
 BUGLISTURL = os.getenv("BUGLISTURL", "") 
@@ -142,7 +141,6 @@ serverstats['clear'] = int(time.time())      # Timestamp of lLast Stats Clear
 
 # Global Variables
 running = True
-conditions = {}
 bugs = {}
 graph = {"nodes": [], "edges": []}
 
@@ -155,6 +153,7 @@ def addbug(host, id):
         if b["id"] == id:
             return False
     bugs["gridbugs"].append({"host": host, "id": id})
+    log.debug("GRAPH: Added bug %s %s" % (id, host))
     return True
 
 # Graph Functions
@@ -186,12 +185,10 @@ def updategraph(payload=False):
             if source not in graph["nodes"]:
                 graph["nodes"].append(source)
                 if sourcehost != "":
-                    if addbug(sourcehost, source):
-                        log.debug("Added bug %s %s" % (sourcehost, source))
+                    addbug(sourcehost, source)
             if target not in graph["nodes"]:
                 graph["nodes"].append(target)
-                if addbug(targethost, source):
-                    log.debug("Added bug %s %s" % (targethost, source))
+                addbug(targethost, source)
             found = False
             for e in graph["edges"]:
                 # Update edges if from authoritative source
@@ -208,8 +205,6 @@ def updategraph(payload=False):
                         e["color"] = "gray"
             if not found:
                 graph["edges"].append({"id": id, "source": source, "target": target, "alive": alive})
-        if CLI:
-            print("> GRAPH < %r" % graph)
         return True
     else:
         sys.stderr.write("Invalid payload - ignored\n")
@@ -218,7 +213,7 @@ def updategraph(payload=False):
 # Threads
 def pollgridbugs():
     """
-    Thread to poll for current conditions conditions
+    Thread to poll for current conditions and update graph
     """
     global running, serverstats, URL, bugs
     sys.stderr.write(" + pollgridbugs thread\n")
@@ -234,15 +229,11 @@ def pollgridbugs():
 
             for node in bugs['gridbugs']:
                 URL = "http://%s/ping" % node['host']
-                if CLI:
-                    print(URL)
-                    log.debug("URL = %s\n" % URL)
+                log.debug("Ping URL = %s\n" % URL)
                 serverstats['poll'] += 1
                 try:
                     response = requests.get(URL)
-                    if response.status_code == 200:
-                        if CLI:
-                            print("Got response from grid %s %s" % (node['id'], node['host']))   
+                    if response.status_code == 200: 
                         log.debug("Got response from grid %s %s" % (node['id'], node['host']))
                         node['alive'] = True 
                         # Attempt to send payload to update node
@@ -263,21 +254,15 @@ def pollgridbugs():
                             updategraph(payload)
                         except:
                             log.debug("Unable to update graph from node %s" % node['host'])
-                            if CLI:
-                                print("Unable to update graph from node %s" % node['host'])  
+ 
                     else:
                         # no response
-                        if CLI:
-                            print("%d response from grid %s %s" % 
-                                (response.status_code, node['id'], node['host'])) 
-                            log.debug("%d response from grid %s %s" % 
-                                (response.status_code, node['id'], node['host'])) 
+                        log.debug("Got %d response from grid %s %s" % 
+                            (response.status_code, node['id'], node['host'])) 
                         node['alive'] = False 
                 except:
-                    # no response
-                    if CLI:
-                        print("No response from grid %s %s" % (node['id'], node['host']))   
-                        log.debug("No response from grid %s %s" % (node['id'], node['host']))   
+                    # no response 
+                    log.debug("No response from grid %s %s" % (node['id'], node['host']))   
                     node['alive'] = False 
                     pass
 
@@ -289,8 +274,7 @@ def pollgridbugs():
                 headers = {'key': GRIDKEY}
                 sname = "http://%s/post" % SERVERNODE
                 r = requests.post(sname, json=bugs, headers=headers)
-                if CLI:
-                    print(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
+                log.debug(f"SENT: Status Code: {r.status_code}, Response: {r.json()}")
             except:
                 log.debug("Unable to update server %s" % SERVERNODE)
 
@@ -321,12 +305,11 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         message = "Error"
         contenttype = 'application/json'
-        result = {}  # placeholder
         if self.path == '/post':
             message = '{"status": "OK"}'   
             content_len = int(self.headers.get('content-length', 0))
             if content_len > MAXPAYLOAD:
-                message = "Error: Heavy Payload"
+                message = "Error: Received Heavy Payload - Ignoring"
             else:
                 post_body = self.rfile.read(content_len)
                 try:
@@ -334,21 +317,20 @@ class handler(BaseHTTPRequestHandler):
                     key = self.headers.get('key', '')
                     log.debug("POST from %s (key = %s) json: %r" % (post_json["node_id"], key, post_json))
                     if key != GRIDKEY:
-                        log.debug("Unauthorized Payload from %s" % post_json["node_id"])
+                        log.debug("- Unauthorized Payload from %s" % post_json["node_id"])
                     else:
-                        log.debug("Authorized Payload from %s" % post_json["node_id"])
+                        log.debug("+ Authorized Payload from %s" % post_json["node_id"])
                         updategraph(post_json)
                 except:
-                    log.debug("Error: Invalid Payload: %r" % post_body)
-                    message = "Error: Invalid Payload: %r" % post_body
+                    log.debug("Error: Invalid Payload")
+                    message = "Error: Invalid Payload"
         else:
             # Error
             message = "Error: Unsupported Request"
 
         # Counts 
         if "Error" in message:
-            if CLI:
-                print("Error: %s" % self.path)
+            log.debug("POST Path %s = %s" % (self.path, message))
             serverstats['errors'] = serverstats['errors'] + 1
         else:
             if self.path in serverstats["uri"]:
@@ -429,7 +411,7 @@ class handler(BaseHTTPRequestHandler):
 
         # Counts 
         if "Error" in message:
-            print("Error: %s" % self.path)
+            log.debug("GET Path %s = %s" % (self.path, message))
             serverstats['errors'] = serverstats['errors'] + 1
         else:
             if self.path in serverstats["uri"]:
@@ -523,14 +505,9 @@ if __name__ == "__main__":
     thread_api.start()
     sys.stderr.flush()
     
-    if CLI:
-        print("   Polling" )
+    log.debug("Start Polling" )
     try:
         while(True):
-            if CLI and 'name' in conditions and conditions['name'] is not None:
-                # conditions report
-                print("   Update",
-                    end='\r')
             time.sleep(2)
     except (KeyboardInterrupt, SystemExit):
         running = False

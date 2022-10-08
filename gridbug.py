@@ -153,6 +153,7 @@ def updategraph(payload=False):
     """
     global bugs, graph
     currentts = time.time()
+    alive = False
     try:
         if payload:
             # Update based on received measurements
@@ -163,7 +164,8 @@ def updategraph(payload=False):
             payload = bugs
         for n in payload["gridbugs"]:
             target = n["id"]
-            alive = n["alive"]
+            if "alive" in n:
+                alive = n["alive"]
             id = "%s.%s" % (source,target)
             if source not in graph["nodes"]:
                 graph["nodes"].append(source)
@@ -228,12 +230,10 @@ def pollgridbugs():
                             sname = "http://%s/post" % node['host']
                             r = requests.post(sname, json=bugs, headers=headers)
                             log.debug("Sent graph to node %s %s" % (node['id'], node['host']))
-                            if CLI:
-                                print("Sent graph to node %s %s" % (node['id'], node['host']))
+                            # print("Sent graph to node %s %s" % (node['id'], node['host']))
                         except:
+                            #print("Unable to send graph to node %s" % node['host'])
                             log.debug("Unable to send graph to node %s" % node['host'])
-                            if CLI:
-                                print("Unable to send graph to node %s" % node['host'])
                         # Attempt to poll node for any graph updates
                         try:
                             sname = "http://%s/bugs" % node['host']
@@ -309,15 +309,16 @@ class handler(BaseHTTPRequestHandler):
                 post_body = self.rfile.read(content_len)
                 try:
                     post_json = json.loads(post_body)
-                    if CLI:
-                        print("POST json: %r" % post_json)
                     key = self.headers.get('key', '')
+                    log.debug("POST (key = %s) json: %r" % (key, post_json))
                     if key != GRIDKEY:
-                        log.debug("Unauthorized Payload")
+                        log.debug("Unauthorized Payload from %s" % post_json["node_id"])
                     else:
+                        log.debug("Authorized Payload from %s" % post_json["node_id"])
                         updategraph(post_json)
                 except:
-                    message = "Error: Invalid Payload"
+                    log.debug("Error: Invalid Payload: %r" % post_body)
+                    message = "Error: Invalid Payload: %r" % post_body
         else:
             # Error
             message = "Error: Unsupported Request"

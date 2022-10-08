@@ -18,6 +18,24 @@ One of the gridbug nodes can be designated as the server and the other grid node
 
 ## Quick Start
 
+The project has a `setup.sh` script to help get you started.  Before you do, you should have a plan:
+
+* **ID** - Every GridBug node needs a unique `ID` that will show up on the visualization. Make this descriptive enough to identify where it is on the grid.  For example, 'CA-datacenter' and 'East-1-Cloud'.  Each node will also need a URL (hostname:8777) that is accessible by the other GridBug nodes.
+* **GRIDKEY** - You will need to set a unique key (string of alphanumeric characters without spaces) for your grid network. This will be a shared key by all the GridBug nodes to authenticate other friendly GridNodes. This allow for dynamically adding new nodes to the grid as well.
+
+    ```bash
+    # Clone the Project
+    git clone https://github.com/jasonacox/gridbug.git
+
+    # Run the Setup script
+    cd gridbug
+    ./setup.sh
+
+    # Open http://hostname:8777 to see the GridBug console
+    ```
+
+## Manual Setup
+
 1. Create a `gridbug.conf` file (example below) and update with your specific location details. Make sure you update `ID` to be the unique name of the node.  
 
 2. The `GRIDKEY` token should be a unique key (string of alphanumeric characters). It should be the same for all the GridBug nodes in your network.  GridBug will reject any updates from nodes that do not match this key.

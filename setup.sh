@@ -94,6 +94,7 @@ docker run \
 -e GRIDBUGLIST='/var/lib/gridbug/gridbugs.json' \
 -v ${PWD}:/var/lib/gridbug \
 --name gridbug \
+--user ${UID} \
 --restart unless-stopped \
 jasonacox/gridbug
 

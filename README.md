@@ -89,7 +89,7 @@ A `setup.sh` script is available to help get you started.
     -p 8777:8777 \
     -e GRIDBUGCONF='/var/lib/gridbug/gridbug.conf' \
     -e GRIDBUGLIST='/var/lib/gridbug/gridbugs.json' \
-    -v ${PWD}:/var/lib/gridbug \
+    -v ${PWD}:/var/lib/gridbug:ro \
     --name gridbug \
     --user ${UID} \
     --restart unless-stopped \

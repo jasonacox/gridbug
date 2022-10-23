@@ -77,7 +77,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from socketserver import ThreadingMixIn 
 import configparser
 
-BUILD = "0.0.3"
+BUILD = "0.0.4"
 MAXPAYLOAD = 4000       # Reject payload if above this size
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
 GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
@@ -145,6 +145,7 @@ serverstats['uri'] = {}
 serverstats['ts'] = int(time.time())         # Timestamp for Now
 serverstats['start'] = int(time.time())      # Timestamp for Start 
 serverstats['clear'] = int(time.time())      # Timestamp of lLast Stats Clear
+serverstats['uptime'] = ""
 
 # Global Variables
 running = True
@@ -395,6 +396,8 @@ class handler(BaseHTTPRequestHandler):
             # Give Internal Stats
             serverstats['ts'] = int(time.time())
             serverstats['mem'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            delta = serverstats['ts'] - serverstats['start']
+            serverstats['uptime'] = str(datetime.timedelta(seconds=delta))
             message = json.dumps(serverstats)
         elif self.path == '/bugs' or self.path == '/gridbugs.json':
             message = json.dumps(bugs)

@@ -425,6 +425,8 @@ class handler(BaseHTTPRequestHandler):
             result["local_time"] = str(datetime.datetime.fromtimestamp(ts))
             result["ts"] = ts
             result["utc"] = str(datetime.datetime.utcfromtimestamp(ts)) 
+            delta = ts - serverstats['start']
+            result['uptime'] = str(datetime.timedelta(seconds=delta))
             message = json.dumps(result)
         else:
             # Error

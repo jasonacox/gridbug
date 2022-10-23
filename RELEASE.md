@@ -1,5 +1,9 @@
 # RELEASE NOTES
 
+## 0.0.4
+
+* Add uptime stats to console display, `/stats` and `/time`.
+
 ## 0.0.3
 
 * Add `setup.sh` to help with first time setup of node.

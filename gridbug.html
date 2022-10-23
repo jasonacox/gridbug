@@ -8,6 +8,16 @@
 			font-family: helvetica neue, helvetica, liberation sans, arial, sans-serif;
         	font-size: 14px;
      	}
+		.ts {
+			font-family: helvetica neue, helvetica, liberation sans, arial, sans-serif;
+        	font-size: 8px;
+		}
+		#uptime {
+			height: 20px;
+			position: fixed;
+			bottom: 0%;
+			left: 20;
+		}
 		#cy {
 			position: absolute;
 			left: 20;
@@ -30,6 +40,16 @@
 				$(".title").html(text);
 			});
 			// setTimeout(showversion, 10000);
+		}
+
+		// Update Time
+			function updatetime() {
+			var pwurl = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/time";
+			$.getJSON(pwurl, function(data) {
+				var text = `Time (UTC): ${data.utc} - Uptime: ${data.uptime}`;
+				$(".ts").html(text);
+			});
+			// setTimeout(updatetime, 5000);
 		}
 
 		// Update Graph
@@ -82,7 +102,8 @@
 
 			// Reload Graph every 5s
 			setInterval(function() {
-				update_graph()
+				update_graph();
+				updatetime();
 			}, 5000);
 		});
 
@@ -91,5 +112,6 @@
 	<body>
 	<h1 class="title">GridBug Console</h1>
 	<div id="cy"></div>	
+	<div id="uptime"><p class="ts">Time:</p></div>
 	</body>
 </html>

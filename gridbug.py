@@ -23,11 +23,13 @@
         CONSOLE = gridbug.html
         SERVERNODE = localhost:8777
         GRIDKEY = CRuphacroN2hOfachlsWipaxi4ude1rlbIn4v0Vispiho7tuWeSPADrUdR2pE0rl
+        IPSERVICE = https://api.ipify.org
 
         [API]
         # Port for API requests
         ENABLE = yes
         PORT = 8777
+        MAXPAYLOAD = 40000
 
         [BUGS]
         POLL = 10
@@ -38,18 +40,20 @@
         # Notify connectivity issues
         ENABLE = yes
 
-    ENVIRONMENTAL (overrides above):
+    ENVIRONMENTAL (overrides above, * required if no config file):
         GRIDBUGCONF = Path to gridbug.conf config file
         GRIDBUGLIST = Path to gridbugs.json node list
-        BUGLISTURL = URL to gridbugs.json (overrides config)
-        GRIDKEY = Private key for grid (overrides above)
-        GB_ROLE = node or server
-        GB_ID = Node ID
-        GB_NODEURL = The URL to this node the grid will use
+      * BUGLISTURL = URL to gridbugs.json (overrides config)
+        GB_DEBUG = Set to debug mode (yes/no)
+        GB_ROLE = node or server (defaults node)
+      * GB_ID = Node ID
+      * GB_NODEURL = The URL address to this node (e.g. 10.10.10.10:8777)
         GB_CONSOLE = HTML file for console
         GB_SERVERNODE = Default node to test
-        GB_GRIDKEY = Private key for grid
-        GB_APIPORT = TCP Port to Listen
+      * GB_GRIDKEY = Private key for grid (overrides above)
+        GB_IPSERVICE = Service that provide your public IP
+        GB_APIPORT = TCP Port to Listen (defaults 8777)
+        GB_MAXPAYLOAD = Maximum allowed POST payload to accept
         GB_POLL = Time in seconds to wait between tests
         GB_TTL = Time in seconds to identify dead node
         GB_TIMEOUT = Time in seconds to wait for response
@@ -60,6 +64,10 @@
         /bugs       - List of gridbug nodes
         /stats      - Internal gridbug metrics
         /graph      - Internal graph of connectivity (JSON)
+        /clear      - Reload gridbugs and rebuild graph
+        /ping       - Simple OK response
+        /time       - Local timestamps and uptime
+        /raw        - Raw graph DB
 
 """
 # Modules
@@ -77,14 +85,31 @@ from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from socketserver import ThreadingMixIn 
 import configparser
 
-BUILD = "0.0.4"
-MAXPAYLOAD = 4000       # Reject payload if above this size
+# Built Settings
+BUILD = "0.1.0"
+
+# Defaults
+DEBUGMODE = False
 CONFIGFILE = os.getenv("GRIDBUGCONF", "gridbug.conf")
 GRIDBUGLIST = os.getenv("GRIDBUGLIST", "gridbugs.json")
 BUGLISTURL = os.getenv("BUGLISTURL", "") 
 URL = ""
+CONFIGMSG = ""
+ID = ""
+ROLE = "node"
+CONSOLE = "gridbug.html"
+SERVERNODE = ""
+GRIDKEY = ""
+IPSERVICE = "https://api.ipify.org"
+NODEURL = ""
+API = True
+APIPORT = 8777
+GBPOLL = 10
+TTL = 60
+TIMEOUT = 10
+MAXPAYLOAD = 10000       # Reject payload if above this size (40K)
 
-# Load Configuration File
+# Load config from Configuration File
 config = configparser.ConfigParser(allow_no_value=True)
 if os.path.exists(CONFIGFILE):
     config.read(CONFIGFILE)
@@ -95,32 +120,34 @@ if os.path.exists(CONFIGFILE):
     SERVERNODE = config["GRIDBUG"]["SERVERNODE"]
     GRIDKEY = config["GRIDBUG"]["GRIDKEY"]
     NODEURL = config["GRIDBUG"]["NODEURL"]
-
+    IPSERVICE = config["GRIDBUG"]["IPSERVICE"]
     # GridBug API
     API = config["API"]["ENABLE"].lower() == "yes"
     APIPORT = int(config["API"]["PORT"])
-
+    MAXPAYLOAD = int(config["API"]["MAXPAYLOAD"])
     # GridBugs
     GBPOLL = int(config["BUGS"]["POLL"])
     TTL = int(config["BUGS"]["TTL"])
     TIMEOUT = int(config["BUGS"]["TIMEOUT"])
-    
-    # Alerts
+    # For debug
+    CONFIGMSG = "Used config file %s" % CONFIGFILE
 else:
-    # No config file - Display Error
-    sys.stderr.write("GridBug Server %s\nERROR: No config file. Fix and restart.\n" % BUILD)
-    sys.stderr.flush()
-    while(True):
-        time.sleep(3600)
+    # No config file - assume diskless setup
+    CONFIGMSG = "No config file - using ENV settings"
 
 # Environment vars override config
+DMODE = os.getenv("GB_DEBUG", "")
+if DMODE.lower() == "yes":
+    DEBUGMODE = True
 ROLE = os.getenv("GB_ROLE", ROLE) 
 ID = os.getenv("GB_ID", ID) 
 NODEURL = os.getenv("GB_NODEURL", NODEURL) 
 CONSOLE = os.getenv("GB_CONSOLE", CONSOLE) 
 SERVERNODE = os.getenv("GB_SERVERNODE", SERVERNODE) 
 GRIDKEY = os.getenv("GB_GRIDKEY", GRIDKEY) 
+IPSERVICE = os.getenv("GB_IPSERVICE", IPSERVICE) 
 APIPORT = os.getenv("GB_APIPORT", APIPORT) 
+MAXPAYLOAD = os.getenv("GB_MAXPAYLOAD", MAXPAYLOAD) 
 GBPOLL = os.getenv("GB_POLL", GBPOLL) 
 TTL = os.getenv("GB_TTL", TTL) 
 TIMEOUT = os.getenv("GB_TIMEOUT", TIMEOUT) 
@@ -131,6 +158,24 @@ if DEBUGMODE:
     logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.DEBUG)
     log.setLevel(logging.DEBUG)
     log.debug("GridBug [%s]\n" % BUILD)
+    log.debug(CONFIGMSG)
+
+# Autodiscover public address
+if NODEURL.lower() == "autodiscover":
+    ip = requests.get(IPSERVICE).content.decode('utf8')
+    NODEURL = "%s:%s" % (ip, APIPORT)
+    log.debug("Autodiscover NODEURL: %s" % NODEURL)
+
+# Validate we have what we need to start
+if ID == "" or NODEURL == "" or GRIDKEY == "" or (GRIDBUGLIST == "" and BUGLISTURL == ""):
+    # Missing config files
+    sys.stderr.write("GridBug Server %s\n" % BUILD)
+    sys.stderr.write(CONFIGMSG)
+    sys.stderr.write("ERROR: Missing configs (GB_ID, GB_GRIDKEY, BUGLISTURL). Fix and restart.\n")
+    sys.stderr.flush()
+    while(True):
+        time.sleep(3600)
+
 
 # Global Stats
 serverstats = {}
@@ -151,6 +196,7 @@ serverstats['uptime'] = ""
 running = True
 bugs = {}
 graph = {"nodes": [], "edges": []}
+clearbugs = False
 
 # Add bugs to dict
 def addbug(hostname, host_id):
@@ -227,13 +273,18 @@ def pollgridbugs():
     """
     Thread to poll for current conditions and update graph
     """
-    global running, serverstats, URL, bugs
+    global running, serverstats, URL, bugs, clearbugs
     sys.stderr.write(" + pollgridbugs thread\n")
     nextupdate = time.time()
 
     # Time Loop to update current conditions data
     while(running):
         currentts = time.time()
+
+        # If clearbugs is in action - wait
+        if clearbugs:
+            nextupdate = currentts + GBPOLL
+            continue
 
         # Is it time for an update?
         if currentts >= nextupdate:
@@ -320,11 +371,11 @@ class handler(BaseHTTPRequestHandler):
         return host
 
     def do_POST(self):
-        global URL
+        global  URL, clearbugs, MAXPAYLOAD
         self.send_response(200)
         message = "Error"
         contenttype = 'application/json'
-        if self.path == '/post':
+        if self.path == '/post' and not clearbugs:
             message = '{"status": "OK"}'   
             content_len = int(self.headers.get('content-length', 0))
             if content_len > MAXPAYLOAD:
@@ -334,7 +385,7 @@ class handler(BaseHTTPRequestHandler):
                 try:
                     post_json = json.loads(post_body)
                     key = self.headers.get('key', '')
-                    log.debug("POST from %s (key = %s) json: %r" % (post_json["node_id"], key, post_json))
+                    log.debug("POST %d bytes from %s (key = %s) json: %r" % (content_len, post_json["node_id"], key, post_json))
                     if key != GRIDKEY:
                         log.debug("- Unauthorized Payload from %s" % post_json["node_id"])
                     else:
@@ -343,6 +394,9 @@ class handler(BaseHTTPRequestHandler):
                 except:
                     log.debug("Error: Invalid Payload")
                     message = "Error: Invalid Payload"
+        elif self.path == '/post':
+            # clear bug mode
+            message = "I'm busy clearing bugs"
         else:
             # Error
             message = "Error: Unsupported Request"
@@ -365,7 +419,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(message, "utf8"))
 
     def do_GET(self):
-        global URL, CONSOLE
+        global URL, CONSOLE, bugs, graph, clearbugs, ROLE, BUILD, ID
         self.send_response(200)
         message = "Error"
         contenttype = 'application/json'
@@ -390,7 +444,7 @@ class handler(BaseHTTPRequestHandler):
                     if 'alive' in i:
                         message = message + '<tr><td align ="right">%s</td><td align ="right">%s</td></tr>\n' % (i['id'],i['alive'])
                 message = message + "</table>\n"
-            message = message + '\n<p>Page refresh: %s</p>\n</body>\n</html>' % (
+            message = message + '\n<p>Page refresh: %s</p>\n</body>\n</html>\n' % (
                 str(datetime.datetime.fromtimestamp(time.time())))
         elif self.path == '/stats':
             # Give Internal Stats
@@ -428,9 +482,23 @@ class handler(BaseHTTPRequestHandler):
             delta = ts - serverstats['start']
             result['uptime'] = str(datetime.timedelta(seconds=delta))
             message = json.dumps(result)
+        elif self.path == '/clear':
+            contenttype = 'text/html'
+            log.debug("Clearing and reloading bugslist")
+            try:
+                clearbugs = True
+                time.sleep(1)
+                bugs = {}
+                graph = {"nodes": [], "edges": []}
+                loadbugs()
+                clearbugs = False
+                message = "Bugs Cleared\n"
+            except:
+                clearbugs = False
+                message = "ERROR: Unable to Clear Bugs\n"
         else:
             # Error
-            message = "Error: Unsupported Request"
+            message = "Error: Unsupported Request\n"
 
         # Counts 
         if "Error" in message:
@@ -464,32 +532,9 @@ def api(port):
             print(' CANCEL \n')
     sys.stderr.write('\r ! apiServer Exit\n')
 
-# MAIN Thread
-if __name__ == "__main__":
-    # Create threads
-    thread_pollgridbugs = threading.Thread(target=pollgridbugs)
-    thread_api = threading.Thread(target=api, args=(APIPORT,))
-    
-    # Print header
-    sys.stderr.write("GridBug %s [%s] - Node ID: %s\n" % (ROLE.title(), BUILD, ID))
-    sys.stderr.write("* Validating Configuration [%s]\n" % CONFIGFILE)
-    sys.stderr.write(" + GridBug - Debug: %s, Activate API: %s, API Port: %s\n" 
-        % (DEBUGMODE, API, APIPORT))
-    sys.stderr.write(" + GridKey: [%s]\n" % GRIDKEY)
-
-    # Data Validation and Warnings
-    if NODEURL.startswith("http:") or NODEURL.startswith("https:"):
-        NODEURL = NODEURL.replace("http://","")
-        NODEURL = NODEURL.replace("https://","")
-        sys.stderr.write(" * NOTICE: Removed http prefix from NODEURL %s.\n" % NODEURL)
-    if SERVERNODE.startswith("http:") or SERVERNODE.startswith("https:"):
-        SERVERNODE = SERVERNODE.replace("http://","")
-        SERVERNODE = SERVERNODE.replace("https://","")
-        sys.stderr.write(" * NOTICE: Removed http prefix from SERVERNODE %s.\n" % SERVERNODE)
-    if NODEURL.startswith("localhost") or NODEURL.startswith("example.com"):
-        sys.stderr.write(" ! WARNING: Setting my NODEURL to %s may not be what you want.\n" % NODEURL)
-
+def loadbugs():
     # Load the bugs
+    global bugs, graph, BUGLISTURL, GRIDBUGLIST, BUGLISTURL, NODEURL, ID, ROLE, BUILD
     if BUGLISTURL == "":
         # Load from local file
         try:
@@ -532,6 +577,34 @@ if __name__ == "__main__":
     bugs['node_role'] = ROLE
     bugs['node_build'] = BUILD
     bugs['node_host'] = NODEURL
+
+# MAIN Thread
+if __name__ == "__main__":
+    # Create threads
+    thread_pollgridbugs = threading.Thread(target=pollgridbugs)
+    thread_api = threading.Thread(target=api, args=(APIPORT,))
+    
+    # Print header
+    sys.stderr.write("GridBug %s [%s] - Node ID: %s\n" % (ROLE.title(), BUILD, ID))
+    sys.stderr.write("* Validating Configuration [%s]\n" % CONFIGFILE)
+    sys.stderr.write(" + GridBug - Debug: %s, Activate API: %s, API Port: %s\n" 
+        % (DEBUGMODE, API, APIPORT))
+    sys.stderr.write(" + GridKey: [%s]\n" % GRIDKEY)
+
+    # Data Validation and Warnings
+    if NODEURL.startswith("http:") or NODEURL.startswith("https:"):
+        NODEURL = NODEURL.replace("http://","")
+        NODEURL = NODEURL.replace("https://","")
+        sys.stderr.write(" * NOTICE: Removed http prefix from NODEURL %s.\n" % NODEURL)
+    if SERVERNODE.startswith("http:") or SERVERNODE.startswith("https:"):
+        SERVERNODE = SERVERNODE.replace("http://","")
+        SERVERNODE = SERVERNODE.replace("https://","")
+        sys.stderr.write(" * NOTICE: Removed http prefix from SERVERNODE %s.\n" % SERVERNODE)
+    if NODEURL.startswith("localhost") or NODEURL.startswith("example.com"):
+        sys.stderr.write(" ! WARNING: Setting my NODEURL to %s may not be what you want.\n" % NODEURL)
+
+    # Load bugs
+    loadbugs()
 
     # Start threads
     sys.stderr.write("\nGridBug %s [%s] - Running Node ID: %s on %s\n" % (ROLE.title(), BUILD, ID, NODEURL))

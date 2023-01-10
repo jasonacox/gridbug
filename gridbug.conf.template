@@ -6,11 +6,13 @@ ROLE = node
 CONSOLE = gridbug.html
 SERVERNODE = ZZ_URL
 GRIDKEY = ZZ_KEY
+IPSERVICE = https://api.ipify.org
 
 [API]
 # Port for API requests
 ENABLE = yes
 PORT = ZZ_PORT
+MAXPAYLOAD = 10000
 
 [BUGS]
 # Gridbug node settings

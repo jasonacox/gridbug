@@ -8,8 +8,26 @@ The `gridbug.py` service pulls in a list of other GridBug nodes. It then proceed
 
 All of the GridBug nodes act as servers and clients.  Every node attempts to converge on the same graph by polling and sharing updates with each other. Each node builds a directional graph of connectivity between all the GridBug nodes and renders that as an HTML page using the [cytoscape](https://cytoscape.org/) JavaScript visualization library.
 
+The script can run as a serverless container, a hosted container or as a standalone (python) service.
 
-## Quick Start
+## Serverless Container
+
+The service will run by setting local environmental variables for the node. This will make it easy to run in a serverless fashion (e.g. AWS ECS Fargate):
+
+Use Container: `jasonacox/gridbug`
+
+```bash
+# Set these environmental variables
+BUGLISTURL="https://jasonacox.com/gridbugs.json"  # URL to gridbugs.json seed file
+GB_ID="cloud-us-west"                             # Short descriptive name for this node 
+GB_DEBUG="no"                                     # Debug mode yes/no
+GB_NODEURL="autodiscover"                         # or Address/IP:PORT for this node
+GB_GRIDKEY="RaNdomKeY-4-your-Grid"                # Unique key for your grid network
+```
+
+Using "autodiscover" the node will attempt to discover its own public IP address. If you are using an application load balancer or gateway, specify the DNS address or public IP address and port instead (e.g. `10.20.30.40:8777`).
+
+## Hosted Container Setup (Wizard)
 
 A `setup.sh` script is available to help get you started.
 
@@ -27,7 +45,7 @@ A `setup.sh` script is available to help get you started.
     # Open http://hostname:8777 to see the GridBug console
     ```
 
-## Manual Setup
+## Hosted Container Setup (Manual)
 
 1. Create a `gridbug.conf` file (example below) and update with your specific location details. Make sure you update `ID` to be the unique name of the node.  
 
@@ -110,11 +128,57 @@ A `setup.sh` script is available to help get you started.
     curl -i http://localhost:8777/graph  # nternal graph of connectivity (JSON)
     ```
 
-### Direct Running
+## Standalone Python Service
 
 Alternatively, you can just run the python server from a startup script:
 
 ```bash
+# Create gridbug.conf and gridbugs.json file or set these:
+# environmental variables
+export BUGLISTURL="https://jasonacox.com/gridbugs.json"  # URL to gridbugs.json file 
+export GB_ID="cloud-us-west"                             # Name for this node 
+export GB_DEBUG="no"                                     # Debug mode yes/no
+export GB_NODEURL="jasoncox.com:8777"                    # Address/IP:PORT for this node
+export GB_GRIDKEY="RaNdomKeY-4-your-Grid"                # Unique key for your grid network
+
+# Start
 python3 gridbug.py
 ```
 
+## Service Details
+
+### Envrionmental Variables
+
+```
+        GRIDBUGCONF = Path to gridbug.conf config file
+        GRIDBUGLIST = Path to gridbugs.json node list
+      * BUGLISTURL = URL to gridbugs.json (overrides config)
+        GB_DEBUG = Set to debug mode (yes/no)
+        GB_ROLE = node or server (defaults node)
+      * GB_ID = Node ID
+      * GB_NODEURL = The URL address to this node (e.g. 10.10.10.10:8777)
+        GB_CONSOLE = HTML file for console
+        GB_SERVERNODE = Default node to test
+      * GB_GRIDKEY = Private key for grid (overrides above)
+        GB_IPSERVICE = Service that provide your public IP
+        GB_APIPORT = TCP Port to Listen (defaults 8777)
+        GB_MAXPAYLOAD = Maximum allowed POST payload to accept
+        GB_POLL = Time in seconds to wait between tests
+        GB_TTL = Time in seconds to identify dead node
+        GB_TIMEOUT = Time in seconds to wait for response
+```
+
+### API Functions
+
+```
+    The API service of gridbug has the following functions:
+        /           - GridBug Console - displays graph of nodes      
+        /text       - Human friendly display of current conditions
+        /bugs       - List of gridbug nodes
+        /stats      - Internal gridbug metrics
+        /graph      - Internal graph of connectivity (JSON)
+        /clear      - Reload gridbugs and rebuild graph
+        /ping       - Simple OK response
+        /time       - Local timestamps and uptime
+        /raw        - Raw graph DB
+```

@@ -30,7 +30,7 @@ Using "autodiscover" the node will attempt to discover its own public IP address
 Cloud Serverless tips:
 
 * AWS ECS - When you create an Fargate service (task definition), you will need to specify the environmental variables (container overrides) as shown above.
-* Google Cloud Run - You will need specify port and create a vpc-connector to get a static address for your instance ([see here](https://cloud.google.com/run/docs/configuring/static-outbound-ip)). Deploy a test and it will provide an https address that you will use as the `GB_NODEURL` without the port (edit and deploy new revision with that environmental update).
+* Google Cloud Run - You will need to specify the port (8777) and create a vpc-connector to get a static address for your instance ([see here](https://cloud.google.com/run/docs/configuring/static-outbound-ip)). Deploy a test and it will provide an https address that you will use as the `GB_NODEURL` without the port (edit and deploy new revision with that environmental update).
 * Azure ACI - You will need to do a test deploy to get the URL of the container.  Once you have that, you will use that as the `GB_NODEURL` with the port suffix (`:8777`).
 
 ## Hosted Container Setup (Wizard)

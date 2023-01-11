@@ -12,7 +12,7 @@ The script can run as a serverless container, a hosted container or as a standal
 
 ## Serverless Container
 
-The service will run by setting local environmental variables for the node. This will make it easy to run in a serverless fashion (e.g. AWS ECS Fargate):
+The service will run by setting local environmental variables for the node. This will make it easy to run in a serverless fashion (tested in AWS Fargate, Google Cloud Run, and Azure ACI):
 
 Use Container: `jasonacox/gridbug`
 
@@ -26,6 +26,12 @@ GB_GRIDKEY="RaNdomKeY-4-your-Grid"                # Unique key for your grid net
 ```
 
 Using "autodiscover" the node will attempt to discover its own public IP address. If you are using an application load balancer or gateway, specify the DNS address or public IP address and port instead (e.g. `10.20.30.40:8777`).
+
+Cloud Serverless tips:
+
+* AWS ECS - When you create an Fargate service (task definition), you will need to specify the environmental variables (container overrides) as shown above.
+* Google Cloud Run - You will need specify port and create a vpc-connector to get a static address for your instance ([see here](https://cloud.google.com/run/docs/configuring/static-outbound-ip)). Deploy a test and it will provide an https address that you will use as the `GB_NODEURL` without the port (edit and deploy new revision with that environmental update).
+* Azure ACI - You will need to do a test deploy to get the URL of the container.  Once you have that, you will use that as the `GB_NODEURL` with the port suffix (`:8777`).
 
 ## Hosted Container Setup (Wizard)
 
